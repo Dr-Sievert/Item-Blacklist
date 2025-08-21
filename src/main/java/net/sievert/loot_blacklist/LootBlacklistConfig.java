@@ -27,30 +27,22 @@ import java.util.Set;
  * Handles loading and creating the config file for loot item blacklisting.
  */
 public class LootBlacklistConfig {
-
-    /** Logger for config operations */
     private static final Logger LOGGER = LoggerFactory.getLogger(LootBlacklist.MOD_ID);
-
-    /** Config file name */
     private static final String CONFIG_FILE = "loot_blacklist.json";
 
-    /** Example entries for new config */
     private static final List<String> COMMENT_EXAMPLES = List.of(
             "    // \"minecraft:iron_ingot\",",
             "    // \"mod_id:mod_item\""
     );
 
-    /** Set of item identifiers to blacklist */
+    /** Raw identifiers from JSON */
     public Set<Identifier> blacklist = new HashSet<>();
 
-    /**
-     * Loads config from disk, or creates a new one if missing.
-     */
+    /** Load JSON only */
     public static LootBlacklistConfig loadOrCreate() {
         Path configDir = FabricLoader.getInstance().getConfigDir();
         Path configPath = configDir.resolve(CONFIG_FILE);
 
-        // Case 1: File exists, try to read
         if (configPath.toFile().exists()) {
             try (Reader reader = new InputStreamReader(new FileInputStream(configPath.toFile()), StandardCharsets.UTF_8)) {
                 JsonElement rootElement = JsonParser.parseReader(reader);
@@ -63,28 +55,13 @@ public class LootBlacklistConfig {
                         if (el.isJsonPrimitive() && el.getAsJsonPrimitive().isString()) {
                             String raw = el.getAsString();
                             try {
-                                Identifier id = Identifier.of(raw);
-                                config.blacklist.add(id);
+                                config.blacklist.add(Identifier.of(raw));
                             } catch (Exception ex) {
                                 LOGGER.warn("Invalid identifier syntax in config: {}", raw);
                             }
                         }
                     }
                 }
-
-                Set<Identifier> valid = new HashSet<>();
-                Set<Identifier> invalid = new HashSet<>();
-                for (Identifier id : config.blacklist) {
-                    if (Registries.ITEM.containsId(id)) valid.add(id);
-                    else invalid.add(id);
-                }
-                config.blacklist = valid;
-
-                LOGGER.info("Loaded blacklist config: {} valid entries", valid.size());
-                for (Identifier bad : invalid) {
-                    LOGGER.warn("Blacklist entry not found in registry: {}", bad);
-                }
-
                 return config;
             } catch (Exception e) {
                 LOGGER.warn("Malformed config file. Using empty blacklist. Fix JSON syntax to enable.");
@@ -92,7 +69,7 @@ public class LootBlacklistConfig {
             }
         }
 
-        // Case 2: Missing file, generate default
+        // Missing file → generate
         File configDirFile = configDir.toFile();
         if (!configDirFile.exists() && !configDirFile.mkdirs()) {
             LOGGER.warn("Failed to create config directory: {}", configDirFile);
@@ -110,5 +87,25 @@ public class LootBlacklistConfig {
         }
 
         return new LootBlacklistConfig();
+    }
+
+    /** Run later when registry is ready */
+    public void validateEntries() {
+        Set<Identifier> valid = new HashSet<>();
+        Set<Identifier> invalid = new HashSet<>();
+
+        for (Identifier id : blacklist) {
+            if (Registries.ITEM.containsId(id)) {
+                valid.add(id);
+            } else {
+                invalid.add(id);
+            }
+        }
+
+        blacklist = valid;
+        LOGGER.info("Loaded blacklist config: {} valid entries", valid.size());
+        for (Identifier bad : invalid) {
+            LOGGER.warn("Blacklist entry not found in registry: {}", bad);
+        }
     }
 }
