@@ -5,7 +5,9 @@
 	"mixins": [
 		"ItemEntryAccessor",
 		"LootPoolAccessor",
-		"LootTableBuilderAccessor"
+		"LootTableAccessor",
+		"LootTableBuilderAccessor",
+		"ReloadableRegistriesMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
