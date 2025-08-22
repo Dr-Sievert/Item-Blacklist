@@ -10,13 +10,7 @@ import net.minecraft.util.Identifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
-import java.io.Reader;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.HashSet;
@@ -24,7 +18,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Handles loading and creating the config file for loot item blacklisting.
+ * Handles loading, validating, and optionally generating the loot_blacklist config file.
  */
 public class LootBlacklistConfig {
     private static final Logger LOGGER = LoggerFactory.getLogger(LootBlacklist.MOD_ID);
@@ -35,21 +29,24 @@ public class LootBlacklistConfig {
             "    // \"mod_id:mod_item\""
     );
 
-    /** Raw identifiers from JSON */
+    /** Raw identifiers from JSON (validated later) */
     public Set<Identifier> blacklist = new HashSet<>();
 
-    /** Load JSON only */
+    /** Load or create config, but do NOT validate yet */
     public static LootBlacklistConfig loadOrCreate() {
+        LOGGER.info("Loading blacklist config...");
         Path configDir = FabricLoader.getInstance().getConfigDir();
         Path configPath = configDir.resolve(CONFIG_FILE);
 
+        LootBlacklistConfig config = new LootBlacklistConfig();
+
+        // Attempt to read existing config
         if (configPath.toFile().exists()) {
             try (Reader reader = new InputStreamReader(new FileInputStream(configPath.toFile()), StandardCharsets.UTF_8)) {
-                JsonElement rootElement = JsonParser.parseReader(reader);
-                if (!rootElement.isJsonObject()) throw new JsonSyntaxException("Root is not object");
+                JsonElement root = JsonParser.parseReader(reader);
+                if (!root.isJsonObject()) throw new JsonSyntaxException("Root element is not a JSON object");
 
-                LootBlacklistConfig config = new LootBlacklistConfig();
-                JsonArray arr = rootElement.getAsJsonObject().getAsJsonArray("blacklist");
+                JsonArray arr = root.getAsJsonObject().getAsJsonArray("blacklist");
                 if (arr != null) {
                     for (JsonElement el : arr) {
                         if (el.isJsonPrimitive() && el.getAsJsonPrimitive().isString()) {
@@ -57,39 +54,38 @@ public class LootBlacklistConfig {
                             try {
                                 config.blacklist.add(Identifier.of(raw));
                             } catch (Exception ex) {
-                                LOGGER.warn("Invalid identifier syntax in config: {}", raw);
+                                LOGGER.warn("Invalid identifier in config: {}", raw);
                             }
                         }
                     }
                 }
-                return config;
             } catch (Exception e) {
-                LOGGER.warn("Malformed config file. Using empty blacklist. Fix JSON syntax to enable.");
-                return new LootBlacklistConfig();
+                LOGGER.warn("Failed to load config: malformed JSON. Using empty blacklist.");
+            }
+        } else {
+            // Generate default config
+            File configDirFile = configDir.toFile();
+            if (!configDirFile.exists() && !configDirFile.mkdirs()) {
+                LOGGER.warn("Failed to create config directory: {}", configDirFile);
+            }
+
+            try (PrintWriter writer = new PrintWriter(new OutputStreamWriter(new FileOutputStream(configPath.toFile()), StandardCharsets.UTF_8))) {
+                writer.println("{");
+                writer.println("  \"blacklist\": [");
+                for (String example : COMMENT_EXAMPLES) writer.println(example);
+                writer.println("  ]");
+                writer.println("}");
+                LOGGER.info("Created default loot_blacklist config at {}", configPath);
+            } catch (Exception e) {
+                LOGGER.error("Failed to write default loot_blacklist config!", e);
             }
         }
 
-        // Missing file → generate
-        File configDirFile = configDir.toFile();
-        if (!configDirFile.exists() && !configDirFile.mkdirs()) {
-            LOGGER.warn("Failed to create config directory: {}", configDirFile);
-        }
-
-        try (PrintWriter writer = new PrintWriter(new OutputStreamWriter(new FileOutputStream(configPath.toFile()), StandardCharsets.UTF_8))) {
-            writer.println("{");
-            writer.println("  \"blacklist\": [");
-            for (String example : COMMENT_EXAMPLES) writer.println(example);
-            writer.println("  ]");
-            writer.println("}");
-            LOGGER.info("Created default loot_blacklist config at {}", configPath);
-        } catch (Exception e) {
-            LOGGER.error("Failed to create default loot_blacklist config!", e);
-        }
-
-        return new LootBlacklistConfig();
+        LOGGER.info("Loaded blacklist config with {} raw entries", config.blacklist.size());
+        return config;
     }
 
-    /** Run later when registry is ready */
+    /** Filters out invalid item IDs and logs results */
     public void validateEntries() {
         Set<Identifier> valid = new HashSet<>();
         Set<Identifier> invalid = new HashSet<>();
@@ -103,9 +99,9 @@ public class LootBlacklistConfig {
         }
 
         blacklist = valid;
-        LOGGER.info("Loaded blacklist config: {} valid entries", valid.size());
+        LOGGER.info("Blacklist validated: {} item(s) loaded", valid.size());
         for (Identifier bad : invalid) {
-            LOGGER.warn("Blacklist entry not found in registry: {}", bad);
+            LOGGER.warn("Invalid blacklist entry: not found in item registry: {}", bad);
         }
     }
 }

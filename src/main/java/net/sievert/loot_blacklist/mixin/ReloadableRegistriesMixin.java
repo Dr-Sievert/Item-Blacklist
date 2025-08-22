@@ -2,20 +2,15 @@ package net.sievert.loot_blacklist.mixin;
 
 import net.minecraft.loot.LootPool;
 import net.minecraft.loot.LootTable;
-import net.minecraft.loot.entry.EmptyEntry;
-import net.minecraft.loot.entry.ItemEntry;
-import net.minecraft.loot.entry.LootPoolEntry;
-import net.minecraft.registry.CombinedDynamicRegistries;
-import net.minecraft.registry.MutableRegistry;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.ServerDynamicRegistryType;
+import net.minecraft.loot.entry.*;
+import net.minecraft.registry.*;
 import net.minecraft.util.Identifier;
 import net.sievert.loot_blacklist.LootBlacklist;
 import net.sievert.loot_blacklist.LootBlacklistConfig;
-import net.minecraft.registry.Registries;
 import net.minecraft.item.Item;
 import net.minecraft.registry.entry.RegistryEntry;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
@@ -23,7 +18,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import java.util.ArrayList;
 import java.util.List;
 
-@Mixin(targets = "net.minecraft.registry.ReloadableRegistries")
+@Mixin(ReloadableRegistries.class)
 public class ReloadableRegistriesMixin {
 
     @Inject(
@@ -39,24 +34,25 @@ public class ReloadableRegistriesMixin {
             CallbackInfoReturnable<CombinedDynamicRegistries<ServerDynamicRegistryType>> cir) {
 
         LootBlacklistConfig config = LootBlacklist.CONFIG;
-        if (config == null) return; // not loaded yet
+        if (config == null) return;
+        config.validateEntries();
 
-        int modifyCount = 0;
-
-        // Find the loot table registry in the current reload context
         for (MutableRegistry<?> registry : registries) {
             RegistryKey<?> key = registry.getKey();
             if (key.getValue().toString().equals("minecraft:loot_table")) {
                 @SuppressWarnings("unchecked")
                 MutableRegistry<LootTable> lootRegistry = (MutableRegistry<LootTable>) registry;
 
+                int totalModifyCount = 0;
+
                 for (Identifier tableId : lootRegistry.getIds()) {
                     LootTable table = lootRegistry.get(tableId);
                     if (table == null) continue;
 
-                    // Rebuild pools with blacklisted entries replaced by EmptyEntry
                     List<LootPool> originalPools = ((LootTableAccessor) table).getPools();
                     List<LootPool> rebuiltPools = new ArrayList<>();
+
+                    int tableModifyCount = 0;
 
                     for (LootPool pool : originalPools) {
                         LootPool.Builder rebuilt = LootPool.builder()
@@ -67,11 +63,10 @@ public class ReloadableRegistriesMixin {
                         pool.functions.forEach(rebuilt::apply);
 
                         for (LootPoolEntry entry : ((LootPoolAccessor) pool).getEntries()) {
-                            Identifier id = getEntryId(entry);
-                            if (id != null && config.blacklist.contains(id)) {
-                                rebuilt.with(EmptyEntry.builder());
-                                modifyCount++;
-                                LootBlacklist.LOGGER.info("[loot_blacklist] {}: blacklisted, replaced {} with empty", tableId, id);
+                            LootPoolEntry patched = patchEntry(entry, config);
+                            if (patched != null) {
+                                tableModifyCount++;
+                                rebuilt.with(patched);
                             } else {
                                 rebuilt.with(entry);
                             }
@@ -79,19 +74,55 @@ public class ReloadableRegistriesMixin {
                         rebuiltPools.add(rebuilt.build());
                     }
 
-                    // Overwrite pools if changes were made (or always, if you prefer strictness)
-                    if (modifyCount > 0) {
+                    if (tableModifyCount > 0) {
                         ((LootTableAccessor) table).setPools(rebuiltPools);
+                        LootBlacklist.LOGGER.info("Patched {} entries in {}", tableModifyCount, tableId);
+                        totalModifyCount += tableModifyCount;
                     }
                 }
-                if (modifyCount > 0) {
-                    LootBlacklist.LOGGER.info("[loot_blacklist] Patched {} loot table entries in reload", modifyCount);
+
+                if (totalModifyCount > 0) {
+                    LootBlacklist.LOGGER.info("Patched {} total loot table entries", totalModifyCount);
                 }
             }
         }
     }
 
-    // Helper copied from your LootBlacklist class (static for inner mixin)
+    @Unique
+    private static LootPoolEntry patchEntry(LootPoolEntry entry, LootBlacklistConfig config) {
+        if (entry instanceof ItemEntry itemEntry) {
+            Identifier id = getEntryId(itemEntry);
+            if (id != null && config.blacklist.contains(id)) {
+                return EmptyEntry.builder().build();
+            }
+            return null;
+        }
+
+        if (entry instanceof CombinedEntry) {
+            boolean patched = false;
+            List<LootPoolEntry> newChildren = new ArrayList<>();
+            for (LootPoolEntry child : ((CombinedEntryAccessor) entry).getChildren()) {
+                LootPoolEntry patchedChild = patchEntry(child, config);
+                if (patchedChild != null) {
+                    patched = true;
+                    newChildren.add(patchedChild);
+                } else {
+                    newChildren.add(child);
+                }
+            }
+            if (patched && entry instanceof AlternativeEntry) {
+                return AlternativeEntryInvoker.invokeInit(
+                        newChildren,
+                        ((LootPoolEntryAccessor) entry).getConditions()
+                );
+            }
+            return patched ? entry : null;
+        }
+
+        return null;
+    }
+
+    @Unique
     private static Identifier getEntryId(LootPoolEntry entry) {
         if (entry instanceof ItemEntry itemEntry) {
             RegistryEntry<Item> regEntry = ((ItemEntryAccessor) itemEntry).getItemEntry();

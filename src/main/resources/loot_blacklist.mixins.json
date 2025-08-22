@@ -3,11 +3,14 @@
 	"package": "net.sievert.loot_blacklist.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
+		"AlternativeEntryInvoker",
+		"CombinedEntryAccessor",
 		"ItemEntryAccessor",
 		"LootPoolAccessor",
+		"LootPoolEntryAccessor",
 		"LootTableAccessor",
-		"LootTableBuilderAccessor",
-		"ReloadableRegistriesMixin"
+		"ReloadableRegistriesMixin",
+		"TradeOffersMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
