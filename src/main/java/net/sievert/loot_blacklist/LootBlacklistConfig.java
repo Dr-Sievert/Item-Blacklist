@@ -5,8 +5,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 import net.fabricmc.loader.api.FabricLoader;
-import net.minecraft.registry.Registries;
-import net.minecraft.util.Identifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -18,7 +16,8 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * Handles loading, validating, and optionally generating the loot_blacklist config file.
+ * Handles loading and optionally generating the loot_blacklist config file.
+ * Validation is performed externally via BlacklistValidator.
  */
 public class LootBlacklistConfig {
     private static final Logger LOGGER = LoggerFactory.getLogger(LootBlacklist.MOD_ID);
@@ -29,10 +28,13 @@ public class LootBlacklistConfig {
             "    // \"mod_id:mod_item\""
     );
 
-    /** Raw identifiers from JSON (validated later) */
-    public Set<Identifier> blacklist = new HashSet<>();
+    /** Raw identifiers from JSON (NEVER mutated after load, always String) */
+    public final Set<String> rawBlacklist = new HashSet<>();
 
-    /** Load or create config, but do NOT validate yet */
+    /** Working/validated list, to be set by validation logic */
+    public Set<net.minecraft.util.Identifier> blacklist = new HashSet<>();
+
+    /** Load or create config, but do NOT validate */
     public static LootBlacklistConfig loadOrCreate() {
         LOGGER.info("Loading blacklist config...");
         Path configDir = FabricLoader.getInstance().getConfigDir();
@@ -51,11 +53,7 @@ public class LootBlacklistConfig {
                     for (JsonElement el : arr) {
                         if (el.isJsonPrimitive() && el.getAsJsonPrimitive().isString()) {
                             String raw = el.getAsString();
-                            try {
-                                config.blacklist.add(Identifier.of(raw));
-                            } catch (Exception ex) {
-                                LOGGER.warn("Invalid identifier in config: {}", raw);
-                            }
+                            config.rawBlacklist.add(raw);
                         }
                     }
                 }
@@ -81,27 +79,7 @@ public class LootBlacklistConfig {
             }
         }
 
-        LOGGER.info("Loaded blacklist config with {} raw entries", config.blacklist.size());
+        LOGGER.info("Loaded blacklist config with {} raw entries", config.rawBlacklist.size());
         return config;
-    }
-
-    /** Filters out invalid item IDs and logs results */
-    public void validateEntries() {
-        Set<Identifier> valid = new HashSet<>();
-        Set<Identifier> invalid = new HashSet<>();
-
-        for (Identifier id : blacklist) {
-            if (Registries.ITEM.containsId(id)) {
-                valid.add(id);
-            } else {
-                invalid.add(id);
-            }
-        }
-
-        blacklist = valid;
-        LOGGER.info("Blacklist validated: {} item(s) loaded", valid.size());
-        for (Identifier bad : invalid) {
-            LOGGER.warn("Invalid blacklist entry: not found in item registry: {}", bad);
-        }
     }
 }

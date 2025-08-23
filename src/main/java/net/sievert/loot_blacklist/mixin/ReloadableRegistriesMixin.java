@@ -21,6 +21,10 @@ import java.util.List;
 @Mixin(ReloadableRegistries.class)
 public class ReloadableRegistriesMixin {
 
+    /**
+     * Patches loot table entries using the *already validated* blacklist.
+     * Assumes BlacklistValidator.validateAll() has been called before this mixin runs!
+     */
     @Inject(
             method = "apply(Lnet/minecraft/registry/CombinedDynamicRegistries;Ljava/util/List;)Lnet/minecraft/registry/CombinedDynamicRegistries;",
             at = @At(
@@ -35,7 +39,6 @@ public class ReloadableRegistriesMixin {
 
         LootBlacklistConfig config = LootBlacklist.CONFIG;
         if (config == null) return;
-        config.validateEntries();
 
         for (MutableRegistry<?> registry : registries) {
             RegistryKey<?> key = registry.getKey();

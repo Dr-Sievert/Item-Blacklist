@@ -35,9 +35,11 @@ public abstract class TradeOffersMixin {
     @Mutable @Final @Shadow
     public static List<Pair<Factory[], Integer>> REBALANCED_WANDERING_TRADER_TRADES;
 
-
     @Inject(method = "<clinit>", at = @At("RETURN"))
     private static void loot_blacklist$filterVanilla(CallbackInfo ci) {
+        var config = LootBlacklist.CONFIG;
+        if (config == null) return;
+
         AtomicInteger removed = new AtomicInteger();
 
         // profession + rebalanced profession
@@ -47,6 +49,8 @@ public abstract class TradeOffersMixin {
                 Int2ObjectMap<Factory[]> byLevel = entry.getValue();
                 for (int lvl : byLevel.keySet()) {
                     Factory[] arr = byLevel.get(lvl);
+                    if (arr == null || arr.length == 0) continue;
+
                     Factory[] filtered = Arrays.stream(arr)
                             .filter(VillagerTradeBlacklist::shouldKeepFactory)
                             .toArray(Factory[]::new);
@@ -59,6 +63,8 @@ public abstract class TradeOffersMixin {
         // wandering trader
         for (int lvl : WANDERING_TRADER_TRADES.keySet()) {
             Factory[] arr = WANDERING_TRADER_TRADES.get(lvl);
+            if (arr == null || arr.length == 0) continue;
+
             Factory[] filtered = Arrays.stream(arr)
                     .filter(VillagerTradeBlacklist::shouldKeepFactory)
                     .toArray(Factory[]::new);
@@ -80,7 +86,11 @@ public abstract class TradeOffersMixin {
                         })
                         .collect(Collectors.toList());
 
-        LootBlacklist.LOGGER.info("[{}] Vanilla trade blacklist applied: {} trades removed.",
-                LootBlacklist.MOD_ID, removed);
+        int totalRemoved = removed.get();
+        if (totalRemoved > 0) {
+            LootBlacklist.LOGGER.info("Vanilla trade blacklist applied: {} trades removed.", totalRemoved);
+        } else {
+            LootBlacklist.LOGGER.info("No blacklisted vanilla trades found.");
+        }
     }
 }

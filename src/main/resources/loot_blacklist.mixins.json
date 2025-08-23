@@ -9,13 +9,16 @@
 		"LootPoolAccessor",
 		"LootPoolEntryAccessor",
 		"LootTableAccessor",
+		"RegistriesMixin",
 		"ReloadableRegistriesMixin",
-		"TradeOffersMixin"
+		"TradeOffersMixin",
+		"TradeOfferInternalsMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1
 	},
 	"overwrites": {
 		"requireAnnotations": true
-	}
+	},
+	"verbose": true
 }
