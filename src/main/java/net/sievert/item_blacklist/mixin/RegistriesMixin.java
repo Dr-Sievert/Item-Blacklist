@@ -1,11 +1,11 @@
-package net.sievert.loot_blacklist.mixin;
+package net.sievert.item_blacklist.mixin;
 
 import net.minecraft.registry.Registries;
-import net.sievert.loot_blacklist.BlacklistValidator;
-import net.sievert.loot_blacklist.LootBlacklist;
+import net.sievert.item_blacklist.BlacklistValidator;
+import net.sievert.item_blacklist.ItemBlacklist;
 
-import static net.sievert.loot_blacklist.LootBlacklistLogger.*;
-import static net.sievert.loot_blacklist.LootBlacklistLogger.Group.*;
+import static net.sievert.item_blacklist.BlacklistLogger.*;
+import static net.sievert.item_blacklist.BlacklistLogger.Group.*;
 
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -32,8 +32,8 @@ public abstract class RegistriesMixin {
                     target = "Lnet/minecraft/registry/Registries;freezeRegistries()V"
             )
     )
-    private static void loot_blacklist$beforeFreeze(CallbackInfo ci) {
-        var config = LootBlacklist.CONFIG;
+    private static void item_blacklist$beforeFreeze(CallbackInfo ci) {
+        var config = ItemBlacklist.CONFIG;
         if (config == null) return;
 
         var counter = new BlacklistValidator.Counter();
@@ -45,17 +45,17 @@ public abstract class RegistriesMixin {
                 seen
         );
 
-        LootBlacklist.moddedValidated = modded.size();
+        ItemBlacklist.moddedValidated = modded.size();
         config.blacklist.addAll(modded);
 
-        LootBlacklist.totalInvalid += counter.count;
+        ItemBlacklist.totalInvalid += counter.count;
 
         info(VALIDATION,
                 "Blacklist entry validation summary: " +
-                        LootBlacklist.vanillaValidated + " " + pluralize(LootBlacklist.vanillaValidated, "vanilla entry", "vanilla entries") + ", " +
-                        LootBlacklist.moddedValidated + " " + pluralize(LootBlacklist.moddedValidated, "modded entry", "modded entries") + ", " +
+                        ItemBlacklist.vanillaValidated + " " + pluralize(ItemBlacklist.vanillaValidated, "vanilla entry", "vanilla entries") + ", " +
+                        ItemBlacklist.moddedValidated + " " + pluralize(ItemBlacklist.moddedValidated, "modded entry", "modded entries") + ", " +
                         config.blacklist.size() + " " + pluralize(config.blacklist.size(), "valid entry", "valid entries") + " total, " +
-                        LootBlacklist.totalInvalid + " " + pluralize(LootBlacklist.totalInvalid, "invalid entry", "invalid entries")
+                        ItemBlacklist.totalInvalid + " " + pluralize(ItemBlacklist.totalInvalid, "invalid entry", "invalid entries")
         );
     }
 }

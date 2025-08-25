@@ -1,15 +1,15 @@
-package net.sievert.loot_blacklist.mixin;
+package net.sievert.item_blacklist.mixin;
 
 import net.minecraft.loot.LootPool;
 import net.minecraft.loot.LootTable;
 import net.minecraft.loot.entry.*;
 import net.minecraft.registry.*;
 import net.minecraft.util.Identifier;
-import net.sievert.loot_blacklist.LootBlacklist;
-import net.sievert.loot_blacklist.LootBlacklistConfig;
+import net.sievert.item_blacklist.ItemBlacklist;
+import net.sievert.item_blacklist.BlacklistConfig;
 
-import static net.sievert.loot_blacklist.LootBlacklistLogger.*;
-import static net.sievert.loot_blacklist.LootBlacklistLogger.Group.*;
+import static net.sievert.item_blacklist.BlacklistLogger.*;
+import static net.sievert.item_blacklist.BlacklistLogger.Group.*;
 
 import net.minecraft.item.Item;
 import net.minecraft.registry.entry.RegistryEntry;
@@ -41,12 +41,12 @@ public class ReloadableRegistriesMixin {
                     target = "Lnet/minecraft/registry/ReloadableRegistries;with(Lnet/minecraft/registry/CombinedDynamicRegistries;Ljava/util/List;)Lnet/minecraft/registry/CombinedDynamicRegistries;"
             )
     )
-    private static void loot_blacklist$beforeFreeze(
+    private static void item_blacklist$beforeFreeze(
             CombinedDynamicRegistries dynamicRegistries,
             List<MutableRegistry<?>> registries,
             CallbackInfoReturnable<CombinedDynamicRegistries<ServerDynamicRegistryType>> cir) {
 
-        LootBlacklistConfig config = LootBlacklist.CONFIG;
+        BlacklistConfig config = ItemBlacklist.CONFIG;
         if (config == null) return;
 
         int totalTablesPatched = 0;
@@ -110,7 +110,7 @@ public class ReloadableRegistriesMixin {
      * blacklisted item entries or rebuilding combined entries.
      */
     @Unique
-    private static LootPoolEntry patchEntry(LootPoolEntry entry, LootBlacklistConfig config) {
+    private static LootPoolEntry patchEntry(LootPoolEntry entry, BlacklistConfig config) {
         if (entry instanceof ItemEntry itemEntry) {
             Identifier id = getEntryId(itemEntry);
             if (id != null && config.blacklist.contains(id)) {

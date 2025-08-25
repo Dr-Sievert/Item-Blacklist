@@ -1,7 +1,7 @@
-package net.sievert.loot_blacklist.mixin;
+package net.sievert.item_blacklist.mixin;
 
 import net.minecraft.village.TradeOffers;
-import net.sievert.loot_blacklist.VillagerTradeBlacklist;
+import net.sievert.item_blacklist.BlacklistVillagerTrades;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Redirect;
@@ -28,7 +28,7 @@ public abstract class TradeOfferInternalsMixin {
                     target = "Ljava/util/function/Consumer;accept(Ljava/lang/Object;)V"
             )
     )
-    private static void loot_blacklist$filterTrades(
+    private static void item_blacklist$filterTrades(
             Consumer<List<TradeOffers.Factory>> original,
             Object listObj
     ) {
@@ -38,11 +38,11 @@ public abstract class TradeOfferInternalsMixin {
         original.accept(list);
 
         int before = list.size();
-        list.removeIf(f -> !VillagerTradeBlacklist.shouldKeepFactory(f));
+        list.removeIf(f -> !BlacklistVillagerTrades.shouldKeepFactory(f));
         int removed = before - list.size();
 
         if (removed > 0) {
-            VillagerTradeBlacklist.incrementFabricRemoved();
+            BlacklistVillagerTrades.incrementFabricRemoved();
         }
     }
 }

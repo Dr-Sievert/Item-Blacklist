@@ -1,9 +1,10 @@
-package net.sievert.loot_blacklist.mixin;
+package net.sievert.item_blacklist.mixin;
 
 import net.minecraft.village.TradeOffers;
 import net.minecraft.village.VillagerProfession;
 import net.minecraft.village.TradeOffers.Factory;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import net.sievert.item_blacklist.BlacklistVillagerTrades;
 import org.apache.commons.lang3.tuple.Pair;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -17,8 +18,7 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
-import net.sievert.loot_blacklist.LootBlacklist;
-import net.sievert.loot_blacklist.VillagerTradeBlacklist;
+import net.sievert.item_blacklist.ItemBlacklist;
 
 /**
  * Mixin for {@link TradeOffers}.
@@ -45,8 +45,8 @@ public abstract class TradeOffersMixin {
      * blacklisted trades from all vanilla trade maps.
      */
     @Inject(method = "<clinit>", at = @At("RETURN"))
-    private static void loot_blacklist$filterVanilla(CallbackInfo ci) {
-        var config = LootBlacklist.CONFIG;
+    private static void item_blacklist$filterVanilla(CallbackInfo ci) {
+        var config = ItemBlacklist.CONFIG;
         if (config == null) return;
 
         AtomicInteger removed = new AtomicInteger();
@@ -60,7 +60,7 @@ public abstract class TradeOffersMixin {
                     if (arr == null || arr.length == 0) continue;
 
                     Factory[] filtered = Arrays.stream(arr)
-                            .filter(VillagerTradeBlacklist::shouldKeepFactory)
+                            .filter(BlacklistVillagerTrades::shouldKeepFactory)
                             .toArray(Factory[]::new);
                     removed.addAndGet(arr.length - filtered.length);
                     byLevel.put(lvl, filtered);
@@ -73,7 +73,7 @@ public abstract class TradeOffersMixin {
             if (arr == null || arr.length == 0) continue;
 
             Factory[] filtered = Arrays.stream(arr)
-                    .filter(VillagerTradeBlacklist::shouldKeepFactory)
+                    .filter(BlacklistVillagerTrades::shouldKeepFactory)
                     .toArray(Factory[]::new);
             removed.addAndGet(arr.length - filtered.length);
             WANDERING_TRADER_TRADES.put(lvl, filtered);
@@ -84,7 +84,7 @@ public abstract class TradeOffersMixin {
                         .map(pair -> {
                             Factory[] arr = pair.getLeft();
                             Factory[] filtered = Arrays.stream(arr)
-                                    .filter(VillagerTradeBlacklist::shouldKeepFactory)
+                                    .filter(BlacklistVillagerTrades::shouldKeepFactory)
                                     .toArray(Factory[]::new);
                             int lost = arr.length - filtered.length;
                             if (lost > 0) removed.addAndGet(lost);
@@ -92,6 +92,6 @@ public abstract class TradeOffersMixin {
                         })
                         .collect(Collectors.toList());
 
-        VillagerTradeBlacklist.incrementVanillaRemoved(removed.get());
+        BlacklistVillagerTrades.incrementVanillaRemoved(removed.get());
     }
 }

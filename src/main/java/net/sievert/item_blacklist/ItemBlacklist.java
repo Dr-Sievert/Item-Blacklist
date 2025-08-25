@@ -1,4 +1,4 @@
-package net.sievert.loot_blacklist;
+package net.sievert.item_blacklist;
 
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -13,16 +13,16 @@ import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 
-import static net.sievert.loot_blacklist.LootBlacklistLogger.*;
-import static net.sievert.loot_blacklist.LootBlacklistLogger.Group.*;
+import static net.sievert.item_blacklist.BlacklistLogger.*;
+import static net.sievert.item_blacklist.BlacklistLogger.Group.*;
 
 /**
- * Main mod initializer for Loot Blacklist.
+ * Main mod initializer for Item Blacklist.
  * Handles config loading, validation, and trade filtering setup.
  */
-public class LootBlacklist implements ModInitializer {
-	public static final String MOD_ID = "loot_blacklist";
-	public static LootBlacklistConfig CONFIG;
+public class ItemBlacklist implements ModInitializer {
+	public static final String MOD_ID = "item_blacklist";
+	public static BlacklistConfig CONFIG;
 
 	// validation stats
 	public static int vanillaValidated = 0;
@@ -32,7 +32,7 @@ public class LootBlacklist implements ModInitializer {
 	@Override
 	public void onInitialize() {
 		info(INIT, "Initializing " + MOD_ID);
-		CONFIG = LootBlacklistConfig.loadOrCreate();
+		CONFIG = BlacklistConfig.loadOrCreate();
 
 		// Early vanilla-only validation (uses rawBlacklist strings)
 		Set<net.minecraft.util.Identifier> vanillaValid = new HashSet<>();
@@ -43,19 +43,10 @@ public class LootBlacklist implements ModInitializer {
 		CONFIG.blacklist = new HashSet<>(vanillaValid);
 
 		// Start trade filtering
-		VillagerTradeBlacklist.init();
+		BlacklistVillagerTrades.init();
 
 		// Example trades (unrelated to blacklist)
 		TradeOfferHelper.registerVillagerOffers(VillagerProfession.FARMER, 1, factories -> {
-			factories.add((entity, random) -> new TradeOffer(
-					new TradedItem(new ItemStack(Items.EMERALD, 5).getItem()),
-					Optional.empty(),
-					new ItemStack(Items.TORCH, 1),
-					10, 2, 0.05f
-			));
-		});
-
-		TradeOfferHelper.registerVillagerOffers(VillagerProfession.TOOLSMITH, 1, factories -> {
 			factories.add((entity, random) -> new TradeOffer(
 					new TradedItem(new ItemStack(Items.EMERALD, 5).getItem()),
 					Optional.empty(),

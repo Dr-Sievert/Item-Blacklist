@@ -1,4 +1,4 @@
-package net.sievert.loot_blacklist.mixin;
+package net.sievert.item_blacklist.mixin;
 
 import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableMultimap;
@@ -14,8 +14,8 @@ import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.resource.ResourceManager;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.profiler.Profiler;
-import net.sievert.loot_blacklist.LootBlacklist;
-import net.sievert.loot_blacklist.LootBlacklistConfig;
+import net.sievert.item_blacklist.ItemBlacklist;
+import net.sievert.item_blacklist.BlacklistConfig;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -24,8 +24,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.Set;
 
-import static net.sievert.loot_blacklist.LootBlacklistLogger.*;
-import static net.sievert.loot_blacklist.LootBlacklistLogger.Group.*;
+import static net.sievert.item_blacklist.BlacklistLogger.*;
+import static net.sievert.item_blacklist.BlacklistLogger.Group.*;
 
 /**
  * Mixin for {@link RecipeManager}.
@@ -43,13 +43,13 @@ public abstract class RecipeManagerMixin {
             method = "apply(Ljava/util/Map;Lnet/minecraft/resource/ResourceManager;Lnet/minecraft/util/profiler/Profiler;)V",
             at = @At("RETURN")
     )
-    private void loot_blacklist$filterFinal(
+    private void item_blacklist$filterFinal(
             java.util.Map<Identifier, JsonElement> map,
             ResourceManager resourceManager,
             Profiler profiler,
             CallbackInfo ci
     ) {
-        LootBlacklistConfig config = LootBlacklist.CONFIG;
+        BlacklistConfig config = ItemBlacklist.CONFIG;
         if (config == null || config.blacklist.isEmpty()) {
             info(RECIPE, "No blacklist config present. Skipping recipe filter.");
             return;
@@ -99,7 +99,7 @@ public abstract class RecipeManagerMixin {
 
         if (blacklist.contains(entry.id())) return false;
 
-        RegistryWrapper.WrapperLookup lookup = ((RecipeManagerAccessor)rm).loot_blacklist$getRegistryLookup();
+        RegistryWrapper.WrapperLookup lookup = ((RecipeManagerAccessor)rm).item_blacklist$getRegistryLookup();
         ItemStack output = recipe.getResult(lookup);
         if (!output.isEmpty() && blacklist.contains(Registries.ITEM.getId(output.getItem()))) {
             return false;

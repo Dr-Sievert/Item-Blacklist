@@ -1,26 +1,26 @@
 {
 	"schemaVersion": 1,
-	"id": "loot_blacklist",
+	"id": "item_blacklist",
 	"version": "${version}",
-	"name": "Loot Blacklist",
-	"description": "This mod lets you blacklist items from loot tables globally!",
+	"name": "Item Blacklist",
+	"description": "This mod lets you blacklist items from survival gameplay!",
 	"authors": [
 		"Dr-Sievert"
 	],
 	"contact": {
 		"homepage": "https://fabricmc.net/",
-		"sources": "https://github.com/Dr-Sievert/Loot-Blacklist"
+		"sources": "https://github.com/Dr-Sievert/Item-Blacklist"
 	},
 	"license": "CC0-1.0",
-	"icon": "assets/loot_blacklist/icon.png",
+	"icon": "assets/item_blacklist/icon.png",
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"net.sievert.loot_blacklist.LootBlacklist"
+			"net.sievert.item_blacklist.ItemBlacklist"
 		]
 	},
 	"mixins": [
-		"loot_blacklist.mixins.json"
+      "item_blacklist.mixins.json"
 	],
 	"depends": {
 		"fabricloader": ">=0.17.2",

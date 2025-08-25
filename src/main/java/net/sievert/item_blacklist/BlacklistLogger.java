@@ -1,15 +1,15 @@
-package net.sievert.loot_blacklist;
+package net.sievert.item_blacklist;
 
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 
 /**
- * Buffered logger for Loot Blacklist.
+ * Buffered logger for Item Blacklist.
  * Collects logs by group, then flushes them in a fixed order.
  */
-public final class LootBlacklistLogger {
-    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger(LootBlacklist.MOD_ID);
+public final class BlacklistLogger {
+    private static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger(ItemBlacklist.MOD_ID);
 
     /** Log groups for ordered output. */
     public enum Group {
@@ -18,7 +18,7 @@ public final class LootBlacklistLogger {
 
     private static final List<LogEntry> LOG_BUFFER = new ArrayList<>();
 
-    private LootBlacklistLogger() {}
+    private BlacklistLogger() {}
 
     /** Single buffered log entry. */
     private static class LogEntry {
@@ -50,12 +50,12 @@ public final class LootBlacklistLogger {
         for (Group group : order) {
             LOG_BUFFER.stream()
                     .filter(e -> e.group == group)
-                    .forEach(LootBlacklistLogger::printLog);
+                    .forEach(BlacklistLogger::printLog);
             seen.add(group);
         }
         LOG_BUFFER.stream()
                 .filter(e -> !seen.contains(e.group))
-                .forEach(LootBlacklistLogger::printLog);
+                .forEach(BlacklistLogger::printLog);
 
         LOG_BUFFER.clear();
     }

@@ -1,4 +1,4 @@
-package net.sievert.loot_blacklist.mixin;
+package net.sievert.item_blacklist.mixin;
 
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
@@ -8,7 +8,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import net.minecraft.registry.Registries;
-import net.sievert.loot_blacklist.LootBlacklist;
+import net.sievert.item_blacklist.ItemBlacklist;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -33,7 +33,7 @@ public class ItemStackMixin {
             at = @At("RETURN"),
             cancellable = true
     )
-    private void loot_blacklist$overrideTooltip(
+    private void item_blacklist$overrideTooltip(
             Item.TooltipContext context,
             PlayerEntity player,
             TooltipType type,
@@ -41,13 +41,13 @@ public class ItemStackMixin {
     ) {
         ItemStack stack = (ItemStack)(Object)this;
 
-        if (LootBlacklist.CONFIG == null) return;
+        if (ItemBlacklist.CONFIG == null) return;
 
         Identifier id = Registries.ITEM.getId(stack.getItem());
-        if (LootBlacklist.CONFIG.blacklist.contains(id)) {
+        if (ItemBlacklist.CONFIG.blacklist.contains(id)) {
             List<Text> original = cir.getReturnValue();
             Text name = original.isEmpty() ? stack.getName() : original.getFirst();
-            Text warning = Text.translatable("item.loot_blacklist.disabled").formatted(Formatting.RED);
+            Text warning = Text.translatable("item.blacklist.disabled").formatted(Formatting.RED);
             cir.setReturnValue(List.of(name, warning));
         }
     }

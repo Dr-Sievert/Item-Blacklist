@@ -1,4 +1,4 @@
-package net.sievert.loot_blacklist;
+package net.sievert.item_blacklist;
 
 import net.minecraft.registry.Registries;
 import net.minecraft.util.Identifier;
@@ -7,8 +7,8 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import static net.sievert.loot_blacklist.LootBlacklistLogger.*;
-import static net.sievert.loot_blacklist.LootBlacklistLogger.Group.*;
+import static net.sievert.item_blacklist.BlacklistLogger.*;
+import static net.sievert.item_blacklist.BlacklistLogger.Group.*;
 
 /**
  * Utility for validating blacklist entries against

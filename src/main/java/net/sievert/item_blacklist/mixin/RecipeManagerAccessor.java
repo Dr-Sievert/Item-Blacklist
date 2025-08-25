@@ -1,4 +1,4 @@
-package net.sievert.loot_blacklist.mixin;
+package net.sievert.item_blacklist.mixin;
 
 import net.minecraft.recipe.RecipeEntry;
 import net.minecraft.recipe.RecipeManager;
@@ -45,5 +45,5 @@ public interface RecipeManagerAccessor {
      * Accessor for the 'registryLookup' field.
      */
     @Accessor("registryLookup")
-    RegistryWrapper.WrapperLookup loot_blacklist$getRegistryLookup();
+    RegistryWrapper.WrapperLookup item_blacklist$getRegistryLookup();
 }

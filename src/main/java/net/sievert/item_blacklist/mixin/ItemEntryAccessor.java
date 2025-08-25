@@ -1,4 +1,4 @@
-package net.sievert.loot_blacklist.mixin;
+package net.sievert.item_blacklist.mixin;
 
 import net.minecraft.item.Item;
 import net.minecraft.loot.entry.ItemEntry;

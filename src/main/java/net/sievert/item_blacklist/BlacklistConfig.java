@@ -1,4 +1,4 @@
-package net.sievert.loot_blacklist;
+package net.sievert.item_blacklist;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -13,16 +13,16 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import static net.sievert.loot_blacklist.LootBlacklistLogger.*;
-import static net.sievert.loot_blacklist.LootBlacklistLogger.Group.*;
+import static net.sievert.item_blacklist.BlacklistLogger.*;
+import static net.sievert.item_blacklist.BlacklistLogger.Group.*;
 
 /**
- * Configuration class for Loot Blacklist.
+ * Configuration class for Item Blacklist.
  * Loads blacklist entries from JSON config and
  * provides both raw and validated sets.
  */
-public class LootBlacklistConfig {
-    private static final String CONFIG_FILE = "loot_blacklist.json";
+public class BlacklistConfig {
+    private static final String CONFIG_FILE = "item_blacklist.json";
     private static final List<String> COMMENT_EXAMPLES = List.of(
             "    // \"minecraft:iron_ingot\",",
             "    // \"mod_id:mod_item\""
@@ -35,14 +35,14 @@ public class LootBlacklistConfig {
     public Set<net.minecraft.util.Identifier> blacklist = new HashSet<>();
 
     /**
-     * Loads the loot blacklist config from file, or creates a default one if missing.
+     * Loads the item blacklist config from file, or creates a default one if missing.
      * Does not perform validation on entries.
      */
-    public static LootBlacklistConfig loadOrCreate() {
+    public static BlacklistConfig loadOrCreate() {
         Path configDir = FabricLoader.getInstance().getConfigDir();
         Path configPath = configDir.resolve(CONFIG_FILE);
 
-        LootBlacklistConfig config = new LootBlacklistConfig();
+        BlacklistConfig config = new BlacklistConfig();
 
         if (configPath.toFile().exists()) {
             try (Reader reader = new InputStreamReader(new FileInputStream(configPath.toFile()), StandardCharsets.UTF_8)) {
@@ -72,9 +72,9 @@ public class LootBlacklistConfig {
                 for (String example : COMMENT_EXAMPLES) writer.println(example);
                 writer.println("  ]");
                 writer.println("}");
-                info(INIT, "Created default loot_blacklist config at " + configPath);
+                info(INIT, "Created default item_blacklist config at " + configPath);
             } catch (Exception e) {
-                error(INIT, "Failed to write default loot_blacklist config!");
+                error(INIT, "Failed to write default item_blacklist config!");
             }
         }
 

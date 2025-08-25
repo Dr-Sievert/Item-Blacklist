@@ -1,4 +1,4 @@
-package net.sievert.loot_blacklist;
+package net.sievert.item_blacklist;
 
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
@@ -12,15 +12,15 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
-import static net.sievert.loot_blacklist.LootBlacklistLogger.*;
-import static net.sievert.loot_blacklist.LootBlacklistLogger.Group.*;
+import static net.sievert.item_blacklist.BlacklistLogger.*;
+import static net.sievert.item_blacklist.BlacklistLogger.Group.*;
 
 /**
  * Handles filtering villager and wandering trader trades
  * against the configured blacklist.
  */
-public final class VillagerTradeBlacklist {
-    private VillagerTradeBlacklist() {}
+public final class BlacklistVillagerTrades {
+    private BlacklistVillagerTrades() {}
 
     private static final AtomicInteger VANILLA_REMOVED = new AtomicInteger();
     private static final AtomicInteger FABRIC_API_REMOVED = new AtomicInteger();
@@ -71,7 +71,7 @@ public final class VillagerTradeBlacklist {
      * Assumes the blacklist has already been validated.
      */
     private static void applyBlacklist() {
-        if (LootBlacklist.CONFIG == null) {
+        if (ItemBlacklist.CONFIG == null) {
             warn(TRADE, "Config not loaded; skipping other modded trade blacklist.");
             return;
         }
@@ -87,7 +87,7 @@ public final class VillagerTradeBlacklist {
                     if (oldArr == null || oldArr.length == 0) continue;
 
                     TradeOffers.Factory[] newArr = Arrays.stream(oldArr)
-                            .filter(VillagerTradeBlacklist::shouldKeepFactory)
+                            .filter(BlacklistVillagerTrades::shouldKeepFactory)
                             .toArray(TradeOffers.Factory[]::new);
                     removed.addAndGet(oldArr.length - newArr.length);
                     byLevel.put(level, newArr);
@@ -100,7 +100,7 @@ public final class VillagerTradeBlacklist {
             if (oldArr == null || oldArr.length == 0) continue;
 
             TradeOffers.Factory[] newArr = Arrays.stream(oldArr)
-                    .filter(VillagerTradeBlacklist::shouldKeepFactory)
+                    .filter(BlacklistVillagerTrades::shouldKeepFactory)
                     .toArray(TradeOffers.Factory[]::new);
             removed.addAndGet(oldArr.length - newArr.length);
             TradeOffers.WANDERING_TRADER_TRADES.put(level, newArr);
@@ -120,7 +120,7 @@ public final class VillagerTradeBlacklist {
                 if (isBlacklisted(offer.getOriginalFirstBuyItem())) return false;
                 if (offer.getSecondBuyItem()
                         .map(TradedItem::itemStack)
-                        .filter(VillagerTradeBlacklist::isBlacklisted)
+                        .filter(BlacklistVillagerTrades::isBlacklisted)
                         .isPresent()) {
                     return false;
                 }
@@ -135,6 +135,6 @@ public final class VillagerTradeBlacklist {
     private static boolean isBlacklisted(ItemStack stack) {
         if (stack == null || stack.isEmpty()) return false;
         var id = Registries.ITEM.getId(stack.getItem());
-        return LootBlacklist.CONFIG.blacklist.contains(id);
+        return ItemBlacklist.CONFIG.blacklist.contains(id);
     }
 }
