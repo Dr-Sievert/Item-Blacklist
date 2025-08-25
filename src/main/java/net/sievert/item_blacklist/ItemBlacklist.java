@@ -31,7 +31,7 @@ public class ItemBlacklist implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
-		info(INIT, "Initializing " + MOD_ID);
+		info(INIT, "Initializing Item Blacklist");
 		CONFIG = BlacklistConfig.loadOrCreate();
 
 		// Early vanilla-only validation (uses rawBlacklist strings)
