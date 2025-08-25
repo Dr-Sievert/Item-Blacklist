@@ -16,9 +16,18 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.List;
 
+/**
+ * Mixin for {@link ItemStack}.
+ * Injects into tooltip building to display a warning
+ * if the item is blacklisted.
+ */
 @Mixin(ItemStack.class)
 public class ItemStackMixin {
 
+    /**
+     * Injects after tooltip generation to override lines
+     * with a blacklist warning if the item is disabled.
+     */
     @Inject(
             method = "getTooltip(Lnet/minecraft/item/Item$TooltipContext;Lnet/minecraft/entity/player/PlayerEntity;Lnet/minecraft/item/tooltip/TooltipType;)Ljava/util/List;",
             at = @At("RETURN"),
@@ -37,9 +46,7 @@ public class ItemStackMixin {
         Identifier id = Registries.ITEM.getId(stack.getItem());
         if (LootBlacklist.CONFIG.blacklist.contains(id)) {
             List<Text> original = cir.getReturnValue();
-            // Always keep the first line (item name)
             Text name = original.isEmpty() ? stack.getName() : original.getFirst();
-            // Replace all other tooltip lines with your warning
             Text warning = Text.translatable("item.loot_blacklist.disabled").formatted(Formatting.RED);
             cir.setReturnValue(List.of(name, warning));
         }

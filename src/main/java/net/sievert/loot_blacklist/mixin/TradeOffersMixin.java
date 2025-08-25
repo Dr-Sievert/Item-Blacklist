@@ -20,6 +20,11 @@ import java.util.stream.Collectors;
 import net.sievert.loot_blacklist.LootBlacklist;
 import net.sievert.loot_blacklist.VillagerTradeBlacklist;
 
+/**
+ * Mixin for {@link TradeOffers}.
+ * Filters vanilla and rebalanced villager/wandering trader
+ * trades against the blacklist after static initialization.
+ */
 @Mixin(TradeOffers.class)
 public abstract class TradeOffersMixin {
 
@@ -35,6 +40,10 @@ public abstract class TradeOffersMixin {
     @Mutable @Final @Shadow
     public static List<Pair<Factory[], Integer>> REBALANCED_WANDERING_TRADER_TRADES;
 
+    /**
+     * Injects after TradeOffers static init to filter
+     * blacklisted trades from all vanilla trade maps.
+     */
     @Inject(method = "<clinit>", at = @At("RETURN"))
     private static void loot_blacklist$filterVanilla(CallbackInfo ci) {
         var config = LootBlacklist.CONFIG;
@@ -42,7 +51,6 @@ public abstract class TradeOffersMixin {
 
         AtomicInteger removed = new AtomicInteger();
 
-        // Vanilla and rebalanced profession trades
         for (Map<VillagerProfession, Int2ObjectMap<Factory[]>> map :
                 List.of(PROFESSION_TO_LEVELED_TRADE, REBALANCED_PROFESSION_TO_LEVELED_TRADE)) {
             for (var entry : map.entrySet()) {
@@ -60,7 +68,6 @@ public abstract class TradeOffersMixin {
             }
         }
 
-        // Vanilla wandering trader
         for (int lvl : WANDERING_TRADER_TRADES.keySet()) {
             Factory[] arr = WANDERING_TRADER_TRADES.get(lvl);
             if (arr == null || arr.length == 0) continue;
@@ -72,7 +79,6 @@ public abstract class TradeOffersMixin {
             WANDERING_TRADER_TRADES.put(lvl, filtered);
         }
 
-        // Rebalanced wandering trader (immutable list → rebuilt)
         REBALANCED_WANDERING_TRADER_TRADES =
                 REBALANCED_WANDERING_TRADER_TRADES.stream()
                         .map(pair -> {
@@ -86,7 +92,6 @@ public abstract class TradeOffersMixin {
                         })
                         .collect(Collectors.toList());
 
-        // Record total removed but do not log
         VillagerTradeBlacklist.incrementVanillaRemoved(removed.get());
     }
 }

@@ -13,8 +13,10 @@ import org.spongepowered.asm.mixin.gen.Accessor;
  */
 @Mixin(ItemEntry.class)
 public interface ItemEntryAccessor {
-
-    /** @return the registry entry of the Item this loot entry points to */
+    /**
+     * Accessor for the 'item' field.
+     * @return the registry entry of the Item this loot entry points to
+     */
     @Accessor("item")
     RegistryEntry<Item> getItemEntry();
 }

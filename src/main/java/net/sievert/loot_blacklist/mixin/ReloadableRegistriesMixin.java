@@ -7,8 +7,10 @@ import net.minecraft.registry.*;
 import net.minecraft.util.Identifier;
 import net.sievert.loot_blacklist.LootBlacklist;
 import net.sievert.loot_blacklist.LootBlacklistConfig;
+
 import static net.sievert.loot_blacklist.LootBlacklistLogger.*;
 import static net.sievert.loot_blacklist.LootBlacklistLogger.Group.*;
+
 import net.minecraft.item.Item;
 import net.minecraft.registry.entry.RegistryEntry;
 import org.spongepowered.asm.mixin.Mixin;
@@ -20,12 +22,17 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import java.util.ArrayList;
 import java.util.List;
 
+/**
+ * Mixin for {@link ReloadableRegistries}.
+ * Filters loot tables during reload, replacing
+ * blacklisted item entries with empty entries.
+ */
 @Mixin(ReloadableRegistries.class)
 public class ReloadableRegistriesMixin {
 
     /**
-     * Patches loot table entries using the *already validated* blacklist.
-     * Assumes BlacklistValidator.validateAll() has been called before this mixin runs!
+     * Injects before loot table registries are frozen,
+     * patching out blacklisted loot entries.
      */
     @Inject(
             method = "apply(Lnet/minecraft/registry/CombinedDynamicRegistries;Ljava/util/List;)Lnet/minecraft/registry/CombinedDynamicRegistries;",
@@ -42,13 +49,14 @@ public class ReloadableRegistriesMixin {
         LootBlacklistConfig config = LootBlacklist.CONFIG;
         if (config == null) return;
 
+        int totalTablesPatched = 0;
+        int totalEntriesRemoved = 0;
+
         for (MutableRegistry<?> registry : registries) {
             RegistryKey<?> key = registry.getKey();
             if (key.getValue().toString().equals("minecraft:loot_table")) {
                 @SuppressWarnings("unchecked")
                 MutableRegistry<LootTable> lootRegistry = (MutableRegistry<LootTable>) registry;
-
-                int totalModifyCount = 0;
 
                 for (Identifier tableId : lootRegistry.getIds()) {
                     LootTable table = lootRegistry.get(tableId);
@@ -57,7 +65,7 @@ public class ReloadableRegistriesMixin {
                     List<LootPool> originalPools = ((LootTableAccessor) table).getPools();
                     List<LootPool> rebuiltPools = new ArrayList<>();
 
-                    int tableModifyCount = 0;
+                    int tableRemoved = 0;
 
                     for (LootPool pool : originalPools) {
                         LootPool.Builder rebuilt = LootPool.builder()
@@ -70,7 +78,7 @@ public class ReloadableRegistriesMixin {
                         for (LootPoolEntry entry : ((LootPoolAccessor) pool).getEntries()) {
                             LootPoolEntry patched = patchEntry(entry, config);
                             if (patched != null) {
-                                tableModifyCount++;
+                                tableRemoved++;
                                 rebuilt.with(patched);
                             } else {
                                 rebuilt.with(entry);
@@ -79,23 +87,28 @@ public class ReloadableRegistriesMixin {
                         rebuiltPools.add(rebuilt.build());
                     }
 
-                    if (tableModifyCount > 0) {
+                    if (tableRemoved > 0) {
                         ((LootTableAccessor) table).setPools(rebuiltPools);
-                        info(LOOT, "Patched " + tableModifyCount + " " +
-                                pluralize(tableModifyCount, "entry", "entries") +
-                                " in " + tableId);
-                        totalModifyCount += tableModifyCount;
+                        totalTablesPatched++;
+                        totalEntriesRemoved += tableRemoved;
                     }
-                }
-
-                if (totalModifyCount > 0) {
-                    info(LOOT, "Patched " + totalModifyCount + " total " +
-                            pluralize(totalModifyCount, "loot table entry", "loot table entries"));
                 }
             }
         }
+
+        if (totalEntriesRemoved > 0) {
+            info(LOOT, "Loot blacklist: removed " +
+                    totalEntriesRemoved + " " + pluralize(totalEntriesRemoved, "entry", "entries") +
+                    " in " + totalTablesPatched + " " + pluralize(totalTablesPatched, "loot table", "loot tables"));
+        } else {
+            info(LOOT, "No blacklisted loot entries found.");
+        }
     }
 
+    /**
+     * Recursively patches a loot pool entry, replacing
+     * blacklisted item entries or rebuilding combined entries.
+     */
     @Unique
     private static LootPoolEntry patchEntry(LootPoolEntry entry, LootBlacklistConfig config) {
         if (entry instanceof ItemEntry itemEntry) {
@@ -130,6 +143,9 @@ public class ReloadableRegistriesMixin {
         return null;
     }
 
+    /**
+     * Resolves the {@link Identifier} of an item loot entry.
+     */
     @Unique
     private static Identifier getEntryId(LootPoolEntry entry) {
         if (entry instanceof ItemEntry itemEntry) {

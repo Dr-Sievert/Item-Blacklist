@@ -10,6 +10,7 @@
 		"LootPoolAccessor",
 		"LootPoolEntryAccessor",
 		"LootTableAccessor",
+		"RecipeManagerAccessor",
 		"RecipeManagerMixin",
 		"RegistriesMixin",
 		"ReloadableRegistriesMixin",

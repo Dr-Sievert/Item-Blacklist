@@ -15,10 +15,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 import static net.sievert.loot_blacklist.LootBlacklistLogger.*;
 import static net.sievert.loot_blacklist.LootBlacklistLogger.Group.*;
 
+/**
+ * Handles filtering villager and wandering trader trades
+ * against the configured blacklist.
+ */
 public final class VillagerTradeBlacklist {
     private VillagerTradeBlacklist() {}
 
-    // --- Central counters (set from mixins and local logic) ---
     private static final AtomicInteger VANILLA_REMOVED = new AtomicInteger();
     private static final AtomicInteger FABRIC_API_REMOVED = new AtomicInteger();
     private static final AtomicInteger OTHER_REMOVED = new AtomicInteger();
@@ -42,6 +45,7 @@ public final class VillagerTradeBlacklist {
     public static int getFabricRemovedTotal() { return FABRIC_API_REMOVED.get(); }
     public static int getOtherRemovedTotal() { return OTHER_REMOVED.get(); }
 
+    /** Initializes trade blacklist filtering and logs results when server starts. */
     public static void init() {
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             applyBlacklist();
@@ -49,13 +53,14 @@ public final class VillagerTradeBlacklist {
         });
     }
 
+    /** Logs a summary of trades removed across all sources. */
     private static void logVillagerTradeSummary() {
         int vanillaRemoved = getVanillaRemovedTotal();
         int moddedRemoved = getFabricRemovedTotal() + getOtherRemovedTotal();
         int totalRemoved = vanillaRemoved + moddedRemoved;
         String label = pluralize(totalRemoved, "trade", "trades");
         if (totalRemoved > 0) {
-            info(TRADE, "Villager trade blacklist applied: " + totalRemoved + " " + label + " removed.");
+            info(TRADE, "Villager trade blacklist: " + totalRemoved + " " + label + " removed");
         } else {
             info(TRADE, "No blacklisted villager trades found.");
         }
@@ -63,7 +68,7 @@ public final class VillagerTradeBlacklist {
 
     /**
      * Applies blacklist filtering to non-vanilla, non-Fabric trades.
-     * Assumes the blacklist has already been validated (by BlacklistValidator).
+     * Assumes the blacklist has already been validated.
      */
     private static void applyBlacklist() {
         if (LootBlacklist.CONFIG == null) {
@@ -73,7 +78,6 @@ public final class VillagerTradeBlacklist {
 
         AtomicInteger removed = new AtomicInteger();
 
-        // --- Professions ---
         for (Map<VillagerProfession, Int2ObjectMap<TradeOffers.Factory[]>> map :
                 java.util.List.of(TradeOffers.PROFESSION_TO_LEVELED_TRADE)) {
             for (var entry : map.entrySet()) {
@@ -91,7 +95,6 @@ public final class VillagerTradeBlacklist {
             }
         }
 
-        // --- Wandering trader ---
         for (int level : TradeOffers.WANDERING_TRADER_TRADES.keySet()) {
             TradeOffers.Factory[] oldArr = TradeOffers.WANDERING_TRADER_TRADES.get(level);
             if (oldArr == null || oldArr.length == 0) continue;

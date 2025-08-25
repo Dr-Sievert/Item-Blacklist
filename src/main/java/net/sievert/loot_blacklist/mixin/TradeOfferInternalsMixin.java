@@ -9,9 +9,18 @@ import org.spongepowered.asm.mixin.injection.Redirect;
 import java.util.List;
 import java.util.function.Consumer;
 
+/**
+ * Mixin for Fabric's TradeOfferInternals.
+ * Redirects trade registration to filter trades
+ * against the blacklist after Fabric adds them.
+ */
 @Mixin(targets = "net.fabricmc.fabric.impl.object.builder.TradeOfferInternals", remap = false)
 public abstract class TradeOfferInternalsMixin {
 
+    /**
+     * Redirects Consumer.accept to filter blacklisted trades
+     * after Fabric API has registered them.
+     */
     @Redirect(
             method = "registerOffers",
             at = @At(
@@ -26,19 +35,14 @@ public abstract class TradeOfferInternalsMixin {
         @SuppressWarnings("unchecked")
         List<TradeOffers.Factory> list = (List<TradeOffers.Factory>) listObj;
 
-        // Let Fabric API add its trades first
         original.accept(list);
 
-        // Then filter them against our (already validated) blacklist
         int before = list.size();
         list.removeIf(f -> !VillagerTradeBlacklist.shouldKeepFactory(f));
         int removed = before - list.size();
 
         if (removed > 0) {
             VillagerTradeBlacklist.incrementFabricRemoved();
-            // Logging is handled centrally after all trades are processed for consistent group ordering
-            // To log individual removals here (not recommended):
-            // info(TRADE, "Filtered " + removed + " blacklisted trades from Fabric API offer list.");
         }
     }
 }

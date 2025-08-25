@@ -16,6 +16,10 @@ import java.util.Set;
 import static net.sievert.loot_blacklist.LootBlacklistLogger.*;
 import static net.sievert.loot_blacklist.LootBlacklistLogger.Group.*;
 
+/**
+ * Main mod initializer for Loot Blacklist.
+ * Handles config loading, validation, and trade filtering setup.
+ */
 public class LootBlacklist implements ModInitializer {
 	public static final String MOD_ID = "loot_blacklist";
 	public static LootBlacklistConfig CONFIG;
@@ -38,7 +42,7 @@ public class LootBlacklist implements ModInitializer {
 		totalInvalid = vanillaInvalid;
 		CONFIG.blacklist = new HashSet<>(vanillaValid);
 
-		// Start trade filtering, etc.
+		// Start trade filtering
 		VillagerTradeBlacklist.init();
 
 		// Example trades (unrelated to blacklist)
@@ -61,8 +65,6 @@ public class LootBlacklist implements ModInitializer {
 		});
 
 		// Flush all logs at once on server started
-		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
-			flush();
-		});
+		ServerLifecycleEvents.SERVER_STARTED.register(server -> flush());
 	}
 }

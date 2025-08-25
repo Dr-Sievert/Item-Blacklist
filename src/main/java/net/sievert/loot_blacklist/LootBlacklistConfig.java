@@ -16,6 +16,11 @@ import java.util.Set;
 import static net.sievert.loot_blacklist.LootBlacklistLogger.*;
 import static net.sievert.loot_blacklist.LootBlacklistLogger.Group.*;
 
+/**
+ * Configuration class for Loot Blacklist.
+ * Loads blacklist entries from JSON config and
+ * provides both raw and validated sets.
+ */
 public class LootBlacklistConfig {
     private static final String CONFIG_FILE = "loot_blacklist.json";
     private static final List<String> COMMENT_EXAMPLES = List.of(
@@ -23,21 +28,22 @@ public class LootBlacklistConfig {
             "    // \"mod_id:mod_item\""
     );
 
-    /** Raw identifiers from JSON (NEVER mutated after load, always String) */
+    /** Raw identifiers from JSON (never mutated after load). */
     public final Set<String> rawBlacklist = new HashSet<>();
 
-    /** Working/validated list, to be set by validation logic */
+    /** Working/validated list of identifiers set by validation logic. */
     public Set<net.minecraft.util.Identifier> blacklist = new HashSet<>();
 
-    /** Load or create config, but do NOT validate */
+    /**
+     * Loads the loot blacklist config from file, or creates a default one if missing.
+     * Does not perform validation on entries.
+     */
     public static LootBlacklistConfig loadOrCreate() {
-        info(INIT, "Loading blacklist config...");
         Path configDir = FabricLoader.getInstance().getConfigDir();
         Path configPath = configDir.resolve(CONFIG_FILE);
 
         LootBlacklistConfig config = new LootBlacklistConfig();
 
-        // Attempt to read existing config
         if (configPath.toFile().exists()) {
             try (Reader reader = new InputStreamReader(new FileInputStream(configPath.toFile()), StandardCharsets.UTF_8)) {
                 JsonElement root = JsonParser.parseReader(reader);
@@ -47,8 +53,7 @@ public class LootBlacklistConfig {
                 if (arr != null) {
                     for (JsonElement el : arr) {
                         if (el.isJsonPrimitive() && el.getAsJsonPrimitive().isString()) {
-                            String raw = el.getAsString();
-                            config.rawBlacklist.add(raw);
+                            config.rawBlacklist.add(el.getAsString());
                         }
                     }
                 }
@@ -56,7 +61,6 @@ public class LootBlacklistConfig {
                 warn(INIT, "Failed to load config: malformed JSON. Using empty blacklist.");
             }
         } else {
-            // Generate default config
             File configDirFile = configDir.toFile();
             if (!configDirFile.exists() && !configDirFile.mkdirs()) {
                 warn(INIT, "Failed to create config directory: " + configDirFile);

@@ -8,8 +8,15 @@ import org.spongepowered.asm.mixin.gen.Invoker;
 
 import java.util.List;
 
+/**
+ * Accessor mixin for {@link AlternativeEntry}.
+ * Exposes its private constructor for blacklist code.
+ */
 @Mixin(AlternativeEntry.class)
 public interface AlternativeEntryInvoker {
+    /**
+     * Accessor for the AlternativeEntry constructor.
+     */
     @Invoker("<init>")
     static AlternativeEntry invokeInit(List<LootPoolEntry> children, List<LootCondition> conditions) {
         throw new AssertionError();

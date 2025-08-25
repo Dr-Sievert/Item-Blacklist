@@ -10,9 +10,19 @@ import java.util.stream.Collectors;
 import static net.sievert.loot_blacklist.LootBlacklistLogger.*;
 import static net.sievert.loot_blacklist.LootBlacklistLogger.Group.*;
 
+/**
+ * Utility for validating blacklist entries against
+ * vanilla and modded item registries.
+ */
 public final class BlacklistValidator {
     private BlacklistValidator() {}
 
+    /**
+     * Validates only vanilla ("minecraft") entries, adding valid
+     * IDs to {@code output} and warning about invalid ones.
+     *
+     * @return number of invalid vanilla entries
+     */
     public static int validateVanillaOnly(Set<String> input, Set<Identifier> output) {
         Set<String> invalidVanilla = new HashSet<>();
         int invalidCount = 0;
@@ -50,6 +60,11 @@ public final class BlacklistValidator {
         return invalidCount;
     }
 
+    /**
+     * Validates only modded (non-"minecraft") entries,
+     * returning the set of valid IDs and updating the
+     * invalid counter for duplicates and errors.
+     */
     public static Set<Identifier> validateModdedOnly(Set<String> input, Counter invalidCounter, Set<String> seenInvalid) {
         Set<Identifier> valid = new HashSet<>();
         Set<String> invalidModded = new HashSet<>();
@@ -100,12 +115,18 @@ public final class BlacklistValidator {
         return valid;
     }
 
+    /**
+     * Joins entries into a quoted, comma-separated string.
+     */
     private static String quoteJoin(Set<String> entries) {
         return entries.stream()
                 .map(s -> "\"" + s + "\"")
                 .collect(Collectors.joining(", "));
     }
 
+    /**
+     * Simple mutable counter used for tracking invalid entries.
+     */
     public static class Counter {
         public int count = 0;
     }

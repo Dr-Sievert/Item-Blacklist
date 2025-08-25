@@ -7,8 +7,15 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 
 import java.util.List;
 
+/**
+ * Accessor mixin for {@link LootPoolEntry}.
+ * Exposes the private 'conditions' field for blacklist code.
+ */
 @Mixin(LootPoolEntry.class)
 public interface LootPoolEntryAccessor {
+    /**
+     * Accessor for the 'conditions' field.
+     */
     @Accessor("conditions")
     List<LootCondition> getConditions();
 }
