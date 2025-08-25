@@ -7,6 +7,8 @@ import net.minecraft.registry.*;
 import net.minecraft.util.Identifier;
 import net.sievert.loot_blacklist.LootBlacklist;
 import net.sievert.loot_blacklist.LootBlacklistConfig;
+import static net.sievert.loot_blacklist.LootBlacklistLogger.*;
+import static net.sievert.loot_blacklist.LootBlacklistLogger.Group.*;
 import net.minecraft.item.Item;
 import net.minecraft.registry.entry.RegistryEntry;
 import org.spongepowered.asm.mixin.Mixin;
@@ -79,13 +81,16 @@ public class ReloadableRegistriesMixin {
 
                     if (tableModifyCount > 0) {
                         ((LootTableAccessor) table).setPools(rebuiltPools);
-                        LootBlacklist.LOGGER.info("Patched {} entries in {}", tableModifyCount, tableId);
+                        info(LOOT, "Patched " + tableModifyCount + " " +
+                                pluralize(tableModifyCount, "entry", "entries") +
+                                " in " + tableId);
                         totalModifyCount += tableModifyCount;
                     }
                 }
 
                 if (totalModifyCount > 0) {
-                    LootBlacklist.LOGGER.info("Patched {} total loot table entries", totalModifyCount);
+                    info(LOOT, "Patched " + totalModifyCount + " total " +
+                            pluralize(totalModifyCount, "loot table entry", "loot table entries"));
                 }
             }
         }

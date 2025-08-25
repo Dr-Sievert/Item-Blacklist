@@ -36,6 +36,9 @@ public abstract class TradeOfferInternalsMixin {
 
         if (removed > 0) {
             VillagerTradeBlacklist.incrementFabricRemoved();
+            // Logging is handled centrally after all trades are processed for consistent group ordering
+            // To log individual removals here (not recommended):
+            // info(TRADE, "Filtered " + removed + " blacklisted trades from Fabric API offer list.");
         }
     }
 }

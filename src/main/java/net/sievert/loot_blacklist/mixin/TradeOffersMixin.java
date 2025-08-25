@@ -42,7 +42,7 @@ public abstract class TradeOffersMixin {
 
         AtomicInteger removed = new AtomicInteger();
 
-        // profession + rebalanced profession
+        // Vanilla and rebalanced profession trades
         for (Map<VillagerProfession, Int2ObjectMap<Factory[]>> map :
                 List.of(PROFESSION_TO_LEVELED_TRADE, REBALANCED_PROFESSION_TO_LEVELED_TRADE)) {
             for (var entry : map.entrySet()) {
@@ -60,7 +60,7 @@ public abstract class TradeOffersMixin {
             }
         }
 
-        // wandering trader
+        // Vanilla wandering trader
         for (int lvl : WANDERING_TRADER_TRADES.keySet()) {
             Factory[] arr = WANDERING_TRADER_TRADES.get(lvl);
             if (arr == null || arr.length == 0) continue;
@@ -72,7 +72,7 @@ public abstract class TradeOffersMixin {
             WANDERING_TRADER_TRADES.put(lvl, filtered);
         }
 
-        // rebalanced wandering trader (immutable list → rebuild new one)
+        // Rebalanced wandering trader (immutable list → rebuilt)
         REBALANCED_WANDERING_TRADER_TRADES =
                 REBALANCED_WANDERING_TRADER_TRADES.stream()
                         .map(pair -> {
@@ -86,11 +86,7 @@ public abstract class TradeOffersMixin {
                         })
                         .collect(Collectors.toList());
 
-        int totalRemoved = removed.get();
-        if (totalRemoved > 0) {
-            LootBlacklist.LOGGER.info("Vanilla trade blacklist applied: {} trades removed.", totalRemoved);
-        } else {
-            LootBlacklist.LOGGER.info("No blacklisted vanilla trades found.");
-        }
+        // Record total removed but do not log
+        VillagerTradeBlacklist.incrementVanillaRemoved(removed.get());
     }
 }

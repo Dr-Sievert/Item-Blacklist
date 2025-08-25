@@ -12,12 +12,21 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import static net.sievert.loot_blacklist.LootBlacklistLogger.*;
+import static net.sievert.loot_blacklist.LootBlacklistLogger.Group.*;
+
 public final class VillagerTradeBlacklist {
     private VillagerTradeBlacklist() {}
 
     // --- Central counters (set from mixins and local logic) ---
+    private static final AtomicInteger VANILLA_REMOVED = new AtomicInteger();
     private static final AtomicInteger FABRIC_API_REMOVED = new AtomicInteger();
     private static final AtomicInteger OTHER_REMOVED = new AtomicInteger();
+
+    /** Called from the vanilla mixin when a trade is removed. */
+    public static void incrementVanillaRemoved(int count) {
+        VANILLA_REMOVED.addAndGet(count);
+    }
 
     /** Called from the Fabric API mixin when a trade is removed. */
     public static void incrementFabricRemoved() {
@@ -29,33 +38,27 @@ public final class VillagerTradeBlacklist {
         OTHER_REMOVED.addAndGet(count);
     }
 
-    public static int getFabricRemovedTotal() {
-        return FABRIC_API_REMOVED.get();
-    }
-
-    public static int getOtherRemovedTotal() {
-        return OTHER_REMOVED.get();
-    }
+    public static int getVanillaRemovedTotal() { return VANILLA_REMOVED.get(); }
+    public static int getFabricRemovedTotal() { return FABRIC_API_REMOVED.get(); }
+    public static int getOtherRemovedTotal() { return OTHER_REMOVED.get(); }
 
     public static void init() {
-        // Main trade blacklist filtering (after all modded items are present)
         ServerLifecycleEvents.SERVER_STARTED.register(server -> {
             applyBlacklist();
-
-            int fabricRemoved = getFabricRemovedTotal();
-            if (fabricRemoved > 0) {
-                LootBlacklist.LOGGER.info("Fabric API trade blacklist applied: {} trades removed.", fabricRemoved);
-            } else {
-                LootBlacklist.LOGGER.info("No Fabric API trades found to blacklist.");
-            }
-
-            int otherRemoved = getOtherRemovedTotal();
-            if (otherRemoved > 0) {
-                LootBlacklist.LOGGER.info("Other modded trade blacklist applied: {} trades removed.", otherRemoved);
-            } else {
-                LootBlacklist.LOGGER.info("No other modded trades found to blacklist.");
-            }
+            logVillagerTradeSummary();
         });
+    }
+
+    private static void logVillagerTradeSummary() {
+        int vanillaRemoved = getVanillaRemovedTotal();
+        int moddedRemoved = getFabricRemovedTotal() + getOtherRemovedTotal();
+        int totalRemoved = vanillaRemoved + moddedRemoved;
+        String label = pluralize(totalRemoved, "trade", "trades");
+        if (totalRemoved > 0) {
+            info(TRADE, "Villager trade blacklist applied: " + totalRemoved + " " + label + " removed.");
+        } else {
+            info(TRADE, "No blacklisted villager trades found.");
+        }
     }
 
     /**
@@ -64,7 +67,7 @@ public final class VillagerTradeBlacklist {
      */
     private static void applyBlacklist() {
         if (LootBlacklist.CONFIG == null) {
-            LootBlacklist.LOGGER.warn("Config not loaded; skipping other modded trade blacklist.");
+            warn(TRADE, "Config not loaded; skipping other modded trade blacklist.");
             return;
         }
 
@@ -120,7 +123,7 @@ public final class VillagerTradeBlacklist {
                 }
             }
         } catch (Throwable t) {
-            LootBlacklist.LOGGER.debug("Skipped filtering a factory due to error: {}", t.toString());
+            debug(TRADE, "Skipped filtering a factory due to error: " + t);
         }
         return true;
     }

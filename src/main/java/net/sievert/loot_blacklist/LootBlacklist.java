@@ -1,22 +1,23 @@
 package net.sievert.loot_blacklist;
 
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.fabricmc.fabric.api.object.builder.v1.trade.TradeOfferHelper;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
 import net.minecraft.village.TradeOffer;
 import net.minecraft.village.TradedItem;
 import net.minecraft.village.VillagerProfession;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.HashSet;
 import java.util.Optional;
 import java.util.Set;
 
+import static net.sievert.loot_blacklist.LootBlacklistLogger.*;
+import static net.sievert.loot_blacklist.LootBlacklistLogger.Group.*;
+
 public class LootBlacklist implements ModInitializer {
 	public static final String MOD_ID = "loot_blacklist";
-	public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 	public static LootBlacklistConfig CONFIG;
 
 	// validation stats
@@ -26,18 +27,18 @@ public class LootBlacklist implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
-		LOGGER.info("Initializing {}", MOD_ID);
+		info(INIT, "Initializing " + MOD_ID);
 		CONFIG = LootBlacklistConfig.loadOrCreate();
 
 		// Early vanilla-only validation (uses rawBlacklist strings)
 		Set<net.minecraft.util.Identifier> vanillaValid = new HashSet<>();
-		int vanillaInvalid = BlacklistValidator.validateVanillaOnly(CONFIG.rawBlacklist, LOGGER, vanillaValid);
+		int vanillaInvalid = BlacklistValidator.validateVanillaOnly(CONFIG.rawBlacklist, vanillaValid);
 
 		vanillaValidated = vanillaValid.size();
-		totalInvalid = vanillaInvalid; // start totalInvalid with vanilla-invalid count
-		CONFIG.blacklist = new HashSet<>(vanillaValid); // working validated set (vanilla only for now)
+		totalInvalid = vanillaInvalid;
+		CONFIG.blacklist = new HashSet<>(vanillaValid);
 
-		// start trade filtering, etc.
+		// Start trade filtering, etc.
 		VillagerTradeBlacklist.init();
 
 		// Example trades (unrelated to blacklist)
@@ -57,6 +58,11 @@ public class LootBlacklist implements ModInitializer {
 					new ItemStack(Items.TORCH, 1),
 					10, 2, 0.05f
 			));
+		});
+
+		// Flush all logs at once on server started
+		ServerLifecycleEvents.SERVER_STARTED.register(server -> {
+			flush();
 		});
 	}
 }

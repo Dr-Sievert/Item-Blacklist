@@ -3,6 +3,9 @@ package net.sievert.loot_blacklist.mixin;
 import net.minecraft.registry.Registries;
 import net.sievert.loot_blacklist.BlacklistValidator;
 import net.sievert.loot_blacklist.LootBlacklist;
+import static net.sievert.loot_blacklist.LootBlacklistLogger.*;
+import static net.sievert.loot_blacklist.LootBlacklistLogger.Group.*;
+
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -29,7 +32,6 @@ public abstract class RegistriesMixin {
 
         var modded = BlacklistValidator.validateModdedOnly(
                 config.rawBlacklist,
-                LootBlacklist.LOGGER,
                 counter,
                 seen
         );
@@ -40,12 +42,11 @@ public abstract class RegistriesMixin {
         // Add modded invalids to existing totalInvalid (which already contains vanilla invalids)
         LootBlacklist.totalInvalid += counter.count;
 
-        LootBlacklist.LOGGER.info(
-                "Blacklist entry validation summary: valid vanilla = {}, valid modded = {}, total valid = {}, total invalid = {}",
-                LootBlacklist.vanillaValidated,
-                LootBlacklist.moddedValidated,
-                config.blacklist.size(),
-                LootBlacklist.totalInvalid
+        info(VALIDATION,
+                "Blacklist entry validation summary: valid vanilla = " + LootBlacklist.vanillaValidated +
+                        ", valid modded = " + LootBlacklist.moddedValidated +
+                        ", total valid = " + config.blacklist.size() +
+                        ", total invalid = " + LootBlacklist.totalInvalid
         );
     }
 }
