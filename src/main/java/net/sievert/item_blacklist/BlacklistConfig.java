@@ -2,6 +2,7 @@ package net.sievert.item_blacklist;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 import net.fabricmc.loader.api.FabricLoader;
@@ -34,6 +35,15 @@ public class BlacklistConfig {
     /** Working/validated list of identifiers set by validation logic. */
     public Set<net.minecraft.util.Identifier> blacklist = new HashSet<>();
 
+    /** If true, logs every individual loot entry removed and which table it was removed from. */
+    public boolean detailedLootTableLog = false;
+
+    /** If true, logs every individual recipe removed and which entry caused the removal. */
+    public boolean detailedRecipeLog = false;
+
+    /** If true, logs every individual villager trade removed and which item caused the removal. */
+    public boolean detailedTradeLog = false;
+
     /**
      * Loads the item blacklist config from file, or creates a default one if missing.
      * Does not perform validation on entries.
@@ -49,7 +59,24 @@ public class BlacklistConfig {
                 JsonElement root = JsonParser.parseReader(reader);
                 if (!root.isJsonObject()) throw new JsonSyntaxException("Root element is not a JSON object");
 
-                JsonArray arr = root.getAsJsonObject().getAsJsonArray("blacklist");
+                JsonObject obj = root.getAsJsonObject();
+
+                JsonElement lootLog = obj.get("Detailed Loot Table Log");
+                if (lootLog != null && lootLog.isJsonPrimitive()) {
+                    config.detailedLootTableLog = lootLog.getAsBoolean();
+                }
+
+                JsonElement recipeLog = obj.get("Detailed Recipe Log");
+                if (recipeLog != null && recipeLog.isJsonPrimitive()) {
+                    config.detailedRecipeLog = recipeLog.getAsBoolean();
+                }
+
+                JsonElement tradeLog = obj.get("Detailed Trade Log");
+                if (tradeLog != null && tradeLog.isJsonPrimitive()) {
+                    config.detailedTradeLog = tradeLog.getAsBoolean();
+                }
+
+                JsonArray arr = obj.getAsJsonArray("Blacklist");
                 if (arr != null) {
                     for (JsonElement el : arr) {
                         if (el.isJsonPrimitive() && el.getAsJsonPrimitive().isString()) {
@@ -68,7 +95,10 @@ public class BlacklistConfig {
 
             try (PrintWriter writer = new PrintWriter(new OutputStreamWriter(new FileOutputStream(configPath.toFile()), StandardCharsets.UTF_8))) {
                 writer.println("{");
-                writer.println("  \"blacklist\": [");
+                writer.println("  \"Detailed Loot Table Log\": false,");
+                writer.println("  \"Detailed Recipe Log\": false,");
+                writer.println("  \"Detailed Trade Log\": false,");
+                writer.println("  \"Blacklist\": [");
                 for (String example : COMMENT_EXAMPLES) writer.println(example);
                 writer.println("  ]");
                 writer.println("}");

@@ -76,7 +76,7 @@ public class ReloadableRegistriesMixin {
                         pool.functions.forEach(rebuilt::apply);
 
                         for (LootPoolEntry entry : ((LootPoolAccessor) pool).getEntries()) {
-                            LootPoolEntry patched = patchEntry(entry, config);
+                            LootPoolEntry patched = patchEntry(entry, config, tableId);
                             if (patched != null) {
                                 tableRemoved++;
                                 rebuilt.with(patched);
@@ -108,12 +108,17 @@ public class ReloadableRegistriesMixin {
     /**
      * Recursively patches a loot pool entry, replacing
      * blacklisted item entries or rebuilding combined entries.
+     * Now takes tableId for detailed log context.
      */
     @Unique
-    private static LootPoolEntry patchEntry(LootPoolEntry entry, BlacklistConfig config) {
+    private static LootPoolEntry patchEntry(LootPoolEntry entry, BlacklistConfig config, Identifier tableId) {
         if (entry instanceof ItemEntry itemEntry) {
             Identifier id = getEntryId(itemEntry);
             if (id != null && config.blacklist.contains(id)) {
+                // ADDED: detailed per-entry logging
+                if (config.detailedLootTableLog) {
+                    info(LOOT, "Entry " + id + " removed from " + tableId);
+                }
                 return EmptyEntry.builder().build();
             }
             return null;
@@ -123,7 +128,7 @@ public class ReloadableRegistriesMixin {
             boolean patched = false;
             List<LootPoolEntry> newChildren = new ArrayList<>();
             for (LootPoolEntry child : ((CombinedEntryAccessor) entry).getChildren()) {
-                LootPoolEntry patchedChild = patchEntry(child, config);
+                LootPoolEntry patchedChild = patchEntry(child, config, tableId);
                 if (patchedChild != null) {
                     patched = true;
                     newChildren.add(patchedChild);

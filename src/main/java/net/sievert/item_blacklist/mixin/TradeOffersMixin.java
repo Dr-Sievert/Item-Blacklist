@@ -1,10 +1,11 @@
 package net.sievert.item_blacklist.mixin;
 
-import net.minecraft.village.TradeOffers;
-import net.minecraft.village.VillagerProfession;
-import net.minecraft.village.TradeOffers.Factory;
 import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
+import net.minecraft.village.TradeOffers;
+import net.minecraft.village.TradeOffers.Factory;
+import net.minecraft.village.VillagerProfession;
 import net.sievert.item_blacklist.BlacklistVillagerTrades;
+import net.sievert.item_blacklist.ItemBlacklist;
 import org.apache.commons.lang3.tuple.Pair;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -17,8 +18,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
-
-import net.sievert.item_blacklist.ItemBlacklist;
 
 /**
  * Mixin for {@link TradeOffers}.
@@ -51,43 +50,52 @@ public abstract class TradeOffersMixin {
 
         AtomicInteger removed = new AtomicInteger();
 
+        // Vanilla + rebalanced villager professions
         for (Map<VillagerProfession, Int2ObjectMap<Factory[]>> map :
                 List.of(PROFESSION_TO_LEVELED_TRADE, REBALANCED_PROFESSION_TO_LEVELED_TRADE)) {
             for (var entry : map.entrySet()) {
+                VillagerProfession profession = entry.getKey();
                 Int2ObjectMap<Factory[]> byLevel = entry.getValue();
+
                 for (int lvl : byLevel.keySet()) {
                     Factory[] arr = byLevel.get(lvl);
                     if (arr == null || arr.length == 0) continue;
 
                     Factory[] filtered = Arrays.stream(arr)
-                            .filter(BlacklistVillagerTrades::shouldKeepFactory)
+                            .filter(f -> BlacklistVillagerTrades.shouldKeepFactory(f, profession, lvl))
                             .toArray(Factory[]::new);
+
                     removed.addAndGet(arr.length - filtered.length);
                     byLevel.put(lvl, filtered);
                 }
             }
         }
 
+        // Wandering trader trades
         for (int lvl : WANDERING_TRADER_TRADES.keySet()) {
             Factory[] arr = WANDERING_TRADER_TRADES.get(lvl);
             if (arr == null || arr.length == 0) continue;
 
             Factory[] filtered = Arrays.stream(arr)
-                    .filter(BlacklistVillagerTrades::shouldKeepFactory)
+                    .filter(f -> BlacklistVillagerTrades.shouldKeepFactory(f, null, lvl))
                     .toArray(Factory[]::new);
+
             removed.addAndGet(arr.length - filtered.length);
             WANDERING_TRADER_TRADES.put(lvl, filtered);
         }
 
+        // Rebalanced wandering trader trades
         REBALANCED_WANDERING_TRADER_TRADES =
                 REBALANCED_WANDERING_TRADER_TRADES.stream()
                         .map(pair -> {
                             Factory[] arr = pair.getLeft();
                             Factory[] filtered = Arrays.stream(arr)
-                                    .filter(BlacklistVillagerTrades::shouldKeepFactory)
+                                    .filter(f -> BlacklistVillagerTrades.shouldKeepFactory(f, null, -1))
                                     .toArray(Factory[]::new);
+
                             int lost = arr.length - filtered.length;
                             if (lost > 0) removed.addAndGet(lost);
+
                             return Pair.of(filtered, pair.getRight());
                         })
                         .collect(Collectors.toList());

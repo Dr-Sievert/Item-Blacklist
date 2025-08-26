@@ -4,11 +4,13 @@ import it.unimi.dsi.fastutil.ints.Int2ObjectMap;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
+import net.minecraft.text.Text;
 import net.minecraft.village.TradeOffers;
 import net.minecraft.village.TradedItem;
 import net.minecraft.village.VillagerProfession;
 
 import java.util.Arrays;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -81,13 +83,14 @@ public final class BlacklistVillagerTrades {
         for (Map<VillagerProfession, Int2ObjectMap<TradeOffers.Factory[]>> map :
                 java.util.List.of(TradeOffers.PROFESSION_TO_LEVELED_TRADE)) {
             for (var entry : map.entrySet()) {
+                VillagerProfession profession = entry.getKey();
                 Int2ObjectMap<TradeOffers.Factory[]> byLevel = entry.getValue();
                 for (int level : byLevel.keySet()) {
                     TradeOffers.Factory[] oldArr = byLevel.get(level);
                     if (oldArr == null || oldArr.length == 0) continue;
 
                     TradeOffers.Factory[] newArr = Arrays.stream(oldArr)
-                            .filter(BlacklistVillagerTrades::shouldKeepFactory)
+                            .filter(f -> shouldKeepFactory(f, profession, level))
                             .toArray(TradeOffers.Factory[]::new);
                     removed.addAndGet(oldArr.length - newArr.length);
                     byLevel.put(level, newArr);
@@ -100,7 +103,7 @@ public final class BlacklistVillagerTrades {
             if (oldArr == null || oldArr.length == 0) continue;
 
             TradeOffers.Factory[] newArr = Arrays.stream(oldArr)
-                    .filter(BlacklistVillagerTrades::shouldKeepFactory)
+                    .filter(f -> shouldKeepFactory(f, null, level))
                     .toArray(TradeOffers.Factory[]::new);
             removed.addAndGet(oldArr.length - newArr.length);
             TradeOffers.WANDERING_TRADER_TRADES.put(level, newArr);
@@ -110,18 +113,38 @@ public final class BlacklistVillagerTrades {
     }
 
     /** Determines whether a trade factory should be kept. */
-    public static boolean shouldKeepFactory(TradeOffers.Factory factory) {
+    public static boolean shouldKeepFactory(TradeOffers.Factory factory, VillagerProfession profession, int level) {
         try {
             var rng = net.minecraft.util.math.random.Random.create();
             var offer = factory.create(null, rng);
 
             if (offer != null) {
-                if (isBlacklisted(offer.getSellItem())) return false;
-                if (isBlacklisted(offer.getOriginalFirstBuyItem())) return false;
+                var config = ItemBlacklist.CONFIG;
+                String context = describeContext(profession, level);
+
+                if (isBlacklisted(offer.getSellItem())) {
+                    if (config.detailedTradeLog) {
+                        var id = Registries.ITEM.getId(offer.getSellItem().getItem());
+                        info(TRADE, "Removed output " + id + " from " + context);
+                    }
+                    return false;
+                }
+
+                if (isBlacklisted(offer.getOriginalFirstBuyItem())) {
+                    if (config.detailedTradeLog) {
+                        var id = Registries.ITEM.getId(offer.getOriginalFirstBuyItem().getItem());
+                        info(TRADE, "Removed first buy " + id + " from " + context);
+                    }
+                    return false;
+                }
+
                 if (offer.getSecondBuyItem()
                         .map(TradedItem::itemStack)
                         .filter(BlacklistVillagerTrades::isBlacklisted)
                         .isPresent()) {
+                    if (config.detailedTradeLog) {
+                        info(TRADE, "Removed second buy (blacklisted item) from " + context);
+                    }
                     return false;
                 }
             }
@@ -130,6 +153,20 @@ public final class BlacklistVillagerTrades {
         }
         return true;
     }
+
+    /** Builds human-readable context like "Novice Armorer" or "Wandering Trader". */
+    private static String describeContext(VillagerProfession profession, int level) {
+        if (profession == null) {
+            return "Wandering Trader (level " + level + ")";
+        }
+
+        String levelName = Text.translatable("merchant.level." + level).getString();
+
+        String profName = Text.translatable("entity.minecraft.villager." + profession.id()).getString();
+
+        return levelName + " " + profName;
+    }
+
 
     /** Checks if a given item stack is blacklisted. */
     private static boolean isBlacklisted(ItemStack stack) {
