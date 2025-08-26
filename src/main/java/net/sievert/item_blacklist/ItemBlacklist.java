@@ -24,7 +24,6 @@ public class ItemBlacklist implements ModInitializer {
 	public static final String MOD_ID = "item_blacklist";
 	public static BlacklistConfig CONFIG;
 
-	// validation stats
 	public static int vanillaValidated = 0;
 	public static int moddedValidated = 0;
 	public static int totalInvalid = 0;
@@ -34,7 +33,6 @@ public class ItemBlacklist implements ModInitializer {
 		info(INIT, "Initializing Item Blacklist");
 		CONFIG = BlacklistConfig.loadOrCreate();
 
-		// Early vanilla-only validation (uses rawBlacklist strings)
 		Set<net.minecraft.util.Identifier> vanillaValid = new HashSet<>();
 		int vanillaInvalid = BlacklistValidator.validateVanillaOnly(CONFIG.rawBlacklist, vanillaValid);
 
@@ -42,20 +40,9 @@ public class ItemBlacklist implements ModInitializer {
 		totalInvalid = vanillaInvalid;
 		CONFIG.blacklist = new HashSet<>(vanillaValid);
 
-		// Start trade filtering
 		BlacklistVillagerTrades.init();
 
-		// Example trades (unrelated to blacklist)
-		TradeOfferHelper.registerVillagerOffers(VillagerProfession.FARMER, 1, factories -> {
-			factories.add((entity, random) -> new TradeOffer(
-					new TradedItem(new ItemStack(Items.EMERALD, 5).getItem()),
-					Optional.empty(),
-					new ItemStack(Items.TORCH, 1),
-					10, 2, 0.05f
-			));
-		});
-
-		// Flush all logs at once on server started
 		ServerLifecycleEvents.SERVER_STARTED.register(server -> flush());
+
 	}
 }

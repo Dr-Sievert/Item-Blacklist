@@ -45,7 +45,7 @@ public abstract class RecipeManagerMixin {
     ) {
         BlacklistConfig config = ItemBlacklist.CONFIG;
         if (config == null || config.blacklist.isEmpty()) {
-            info(RECIPE, "No blacklisted recipes found.");
+            info(RECIPE, "No blacklist config present. Skipping recipe filter.");
             return;
         }
 

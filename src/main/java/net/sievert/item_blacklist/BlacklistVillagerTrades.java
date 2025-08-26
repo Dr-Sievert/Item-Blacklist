@@ -61,6 +61,11 @@ public final class BlacklistVillagerTrades {
         int moddedRemoved = getFabricRemovedTotal() + getOtherRemovedTotal();
         int totalRemoved = vanillaRemoved + moddedRemoved;
         String label = pluralize(totalRemoved, "trade", "trades");
+        BlacklistConfig config = ItemBlacklist.CONFIG;
+        if (config == null || config.blacklist.isEmpty()) {
+            info(TRADE, "No blacklist config present. Skipping villager trade filter.");
+            return;
+        }
         if (totalRemoved > 0) {
             info(TRADE, "Villager trade blacklist: " + totalRemoved + " " + label + " removed");
         } else {

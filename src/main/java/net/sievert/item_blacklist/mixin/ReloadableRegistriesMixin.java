@@ -47,7 +47,10 @@ public class ReloadableRegistriesMixin {
             CallbackInfoReturnable<CombinedDynamicRegistries<ServerDynamicRegistryType>> cir) {
 
         BlacklistConfig config = ItemBlacklist.CONFIG;
-        if (config == null) return;
+        if (config == null || config.blacklist.isEmpty()) {
+            info(LOOT, "No blacklist config present. Skipping loot table filter.");
+            return;
+        }
 
         int totalTablesPatched = 0;
         int totalEntriesRemoved = 0;
@@ -115,7 +118,6 @@ public class ReloadableRegistriesMixin {
         if (entry instanceof ItemEntry itemEntry) {
             Identifier id = getEntryId(itemEntry);
             if (id != null && config.blacklist.contains(id)) {
-                // ADDED: detailed per-entry logging
                 if (config.detailedLootTableLog) {
                     info(LOOT, "Entry " + id + " removed from " + tableId);
                 }

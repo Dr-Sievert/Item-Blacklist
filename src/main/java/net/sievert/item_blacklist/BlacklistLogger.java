@@ -13,7 +13,7 @@ public final class BlacklistLogger {
 
     /** Log groups for ordered output. */
     public enum Group {
-        INIT, VALIDATION, LOOT, RECIPE, TRADE, OTHER
+        INIT, VALIDATION, LOOT, RECIPE, TRADE, TAG
     }
 
     private static final List<LogEntry> LOG_BUFFER = new ArrayList<>();
@@ -44,7 +44,7 @@ public final class BlacklistLogger {
      * then clears the buffer.
      */
     public static void flush() {
-        Group[] order = { Group.INIT, Group.VALIDATION, Group.LOOT, Group.RECIPE, Group.TRADE, Group.OTHER };
+        Group[] order = { Group.INIT, Group.VALIDATION, Group.LOOT, Group.RECIPE, Group.TRADE, Group.TAG };
         EnumSet<Group> seen = EnumSet.noneOf(Group.class);
 
         for (Group group : order) {

@@ -15,6 +15,8 @@
 		"RegistriesMixin",
 		"ReloadableRegistriesMixin",
 		"ServerPlayerEntityMixin",
+		"TagGroupLoaderMixin",
+		"TagManagerLoaderMixin",
 		"TradeOffersMixin",
 		"TradeOfferInternalsMixin"
 	],

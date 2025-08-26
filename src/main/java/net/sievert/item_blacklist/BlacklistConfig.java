@@ -6,6 +6,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.util.Identifier;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -14,8 +15,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import static net.sievert.item_blacklist.BlacklistLogger.*;
-import static net.sievert.item_blacklist.BlacklistLogger.Group.*;
+import net.sievert.item_blacklist.BlacklistLogger;
+import net.sievert.item_blacklist.BlacklistLogger.Group;
 
 /**
  * Configuration class for Item Blacklist.
@@ -33,7 +34,7 @@ public class BlacklistConfig {
     public final Set<String> rawBlacklist = new HashSet<>();
 
     /** Working/validated list of identifiers set by validation logic. */
-    public Set<net.minecraft.util.Identifier> blacklist = new HashSet<>();
+    public Set<Identifier> blacklist = new HashSet<>();
 
     /** If true, logs every individual loot entry removed and which table it was removed from. */
     public boolean detailedLootTableLog = false;
@@ -43,6 +44,9 @@ public class BlacklistConfig {
 
     /** If true, logs every individual villager trade removed and which item caused the removal. */
     public boolean detailedTradeLog = false;
+
+    /** If true, logs every individual tag entry removed and which tag it was removed from. */
+    public boolean detailedTagLog = false;
 
     /**
      * Loads the item blacklist config from file, or creates a default one if missing.
@@ -76,6 +80,11 @@ public class BlacklistConfig {
                     config.detailedTradeLog = tradeLog.getAsBoolean();
                 }
 
+                JsonElement tagLog = obj.get("Detailed Tag Log");
+                if (tagLog != null && tagLog.isJsonPrimitive()) {
+                    config.detailedTagLog = tagLog.getAsBoolean();
+                }
+
                 JsonArray arr = obj.getAsJsonArray("Blacklist");
                 if (arr != null) {
                     for (JsonElement el : arr) {
@@ -85,12 +94,12 @@ public class BlacklistConfig {
                     }
                 }
             } catch (Exception e) {
-                warn(INIT, "Failed to load config: malformed JSON. Using empty blacklist.");
+                BlacklistLogger.warn(Group.INIT, "Failed to load config: malformed JSON. Using empty blacklist.");
             }
         } else {
             File configDirFile = configDir.toFile();
             if (!configDirFile.exists() && !configDirFile.mkdirs()) {
-                warn(INIT, "Failed to create config directory: " + configDirFile);
+                BlacklistLogger.warn(Group.INIT, "Failed to create config directory: " + configDirFile);
             }
 
             try (PrintWriter writer = new PrintWriter(new OutputStreamWriter(new FileOutputStream(configPath.toFile()), StandardCharsets.UTF_8))) {
@@ -98,19 +107,20 @@ public class BlacklistConfig {
                 writer.println("  \"Detailed Loot Table Log\": false,");
                 writer.println("  \"Detailed Recipe Log\": false,");
                 writer.println("  \"Detailed Trade Log\": false,");
+                writer.println("  \"Detailed Tag Log\": false,");
                 writer.println("  \"Blacklist\": [");
                 for (String example : COMMENT_EXAMPLES) writer.println(example);
                 writer.println("  ]");
                 writer.println("}");
-                info(INIT, "Created default item_blacklist config at " + configPath);
+                BlacklistLogger.info(Group.INIT, "Created default item_blacklist config at " + configPath);
             } catch (Exception e) {
-                error(INIT, "Failed to write default item_blacklist config!");
+                BlacklistLogger.error(Group.INIT, "Failed to write default item_blacklist config!");
             }
         }
 
-        info(INIT, "Loaded blacklist config with " +
+        BlacklistLogger.info(Group.INIT, "Loaded blacklist config with " +
                 config.rawBlacklist.size() + " " +
-                pluralize(config.rawBlacklist.size(), "entry", "entries"));
+                BlacklistLogger.pluralize(config.rawBlacklist.size(), "entry", "entries"));
         return config;
     }
 }
