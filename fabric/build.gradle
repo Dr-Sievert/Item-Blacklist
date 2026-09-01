@@ -31,25 +31,32 @@ dependencies {
 }
 
 loom {
+    log4jConfigs.from file('log4j-dev.xml')
+
     def aw = project(':common').file("src/main/resources/${mod_id}.accesswidener")
     if (aw.exists()) {
         accessWidenerPath.set(aw)
     }
+
     mixin {
         defaultRefmapName.set("${mod_id}.refmap.json")
     }
+
     runs {
         client {
             client()
-            setConfigName('Fabric Client')
-            ideConfigGenerated(true)
-            runDir('runs/client')
+            displayName = 'Fabric Client'
+            generateRunConfig = true
+            preferGradleTask = false
+            runDirectory = file('runs/client')
         }
+
         server {
             server()
-            setConfigName('Fabric Server')
-            ideConfigGenerated(true)
-            runDir('runs/server')
+            displayName = 'Fabric Server'
+            generateRunConfig = true
+            preferGradleTask = false
+            runDirectory = file('runs/server')
         }
     }
 }

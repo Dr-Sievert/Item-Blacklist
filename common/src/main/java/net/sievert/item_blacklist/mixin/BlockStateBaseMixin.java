@@ -2,6 +2,7 @@ package net.sievert.item_blacklist.mixin;
 
 import net.minecraft.ChatFormatting;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.InteractionHand;
 import net.minecraft.world.InteractionResult;
@@ -42,20 +43,22 @@ public abstract class BlockStateBaseMixin {
             CallbackInfoReturnable<InteractionResult> cir
     ) {
         if (!player.isCreative() && item_blacklist$isBlacklistedBlock(level, hitResult)) {
-            ItemBlacklistLogs.debug(
-                    ITEM,
-                    "Blocked interaction with blacklisted block: player={}, block={}, pos={}",
-                    player.getDisplayName().getString(),
-                    this.getBlock(),
-                    hitResult.getBlockPos()
-            );
+            if (!level.isClientSide) {
+                ItemBlacklistLogs.debug(
+                        ITEM,
+                        "Blocked interaction with blacklisted block: player={}, block={}, pos={}",
+                        player.getDisplayName().getString(),
+                        BuiltInRegistries.BLOCK.getKey(this.getBlock()),
+                        hitResult.getBlockPos()
+                );
+            }
 
             player.displayClientMessage(
                     Component.literal("Disabled by blacklist.").withStyle(ChatFormatting.RED),
                     true
             );
 
-            cir.setReturnValue(InteractionResult.FAIL);
+            cir.setReturnValue(InteractionResult.CONSUME);
         }
     }
 
@@ -73,13 +76,15 @@ public abstract class BlockStateBaseMixin {
             CallbackInfoReturnable<ItemInteractionResult> cir
     ) {
         if (!player.isCreative() && item_blacklist$isBlacklistedBlock(level, hitResult)) {
-            ItemBlacklistLogs.debug(
-                    ITEM,
-                    "Blocked interaction with blacklisted block: player={}, block={}, pos={}",
-                    player.getDisplayName().getString(),
-                    this.getBlock(),
-                    hitResult.getBlockPos()
-            );
+            if (!level.isClientSide) {
+                ItemBlacklistLogs.debug(
+                        ITEM,
+                        "Blocked interaction with blacklisted block: player={}, block={}, pos={}",
+                        player.getDisplayName().getString(),
+                        BuiltInRegistries.BLOCK.getKey(this.getBlock()),
+                        hitResult.getBlockPos()
+                );
+            }
 
             player.displayClientMessage(
                     Component.empty()
@@ -89,7 +94,7 @@ public abstract class BlockStateBaseMixin {
                     true
             );
 
-            cir.setReturnValue(ItemInteractionResult.FAIL);
+            cir.setReturnValue(ItemInteractionResult.CONSUME);
         }
     }
 

@@ -14,16 +14,8 @@ public final class ItemBlacklist {
     private ItemBlacklist() {}
 
     public static void init() {
-        System.out.println(
-                "fabric.log.level = " + System.getProperty("fabric.log.level")
-        );
 
         ItemBlacklistLogs.info(
-                INIT,
-                "Initializing Item Blacklist"
-        );
-
-        ItemBlacklistLogs.debug(
                 INIT,
                 "Initializing Item Blacklist"
         );
