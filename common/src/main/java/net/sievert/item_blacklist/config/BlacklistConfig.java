@@ -26,15 +26,27 @@ public class BlacklistConfig {
     private static final String TAG_PREFIX = "#";
     private static final String VANILLA_NAMESPACE = "minecraft";
 
-    private static final List<String> COMMENT_EXAMPLES = List.of(
+    private static final List<String> ITEM_EXAMPLES = List.of(
             "    // \"minecraft:oak_planks\",",
             "    // \"#minecraft:planks\",",
             "    // \"mod_id:mod_item\",",
             "    // \"#mod_id:mod_tag\""
     );
 
-    public final Set<ResourceLocation> blacklist = new HashSet<>();
-    public final Set<ResourceLocation> blacklistTags = new HashSet<>();
+    private static final List<String> POTION_EXAMPLES = List.of(
+            "    // \"minecraft:strength\",",
+            "    // \"minecraft:strong_strength\",",
+            "    // \"minecraft:long_strength\""
+    );
+
+    public final Set<ResourceLocation> blacklistItems =
+            new HashSet<>();
+
+    public final Set<ResourceLocation> blacklistTags =
+            new HashSet<>();
+
+    public final Set<ResourceLocation> blacklistPotions =
+            new HashSet<>();
 
     public boolean detailedLog;
 
@@ -99,36 +111,141 @@ public class BlacklistConfig {
                         detailedLog.getAsBoolean();
             }
 
-            JsonArray blacklist =
-                    object.getAsJsonArray("Blacklist");
+            parseItems(
+                    config,
+                    object.getAsJsonArray("Items")
+            );
 
-            if (blacklist == null) {
-                return;
-            }
-
-            for (JsonElement element : blacklist) {
-                if (!element.isJsonPrimitive()
-                        || !element.getAsJsonPrimitive().isString()) {
-                    ItemBlacklistLogs.warn(
-                            CONFIG,
-                            "Ignoring non-string blacklist entry: {}",
-                            element
-                    );
-
-                    continue;
-                }
-
-                parseEntry(
-                        config,
-                        element.getAsString()
-                );
-            }
+            parsePotions(
+                    config,
+                    object.getAsJsonArray("Potions")
+            );
         } catch (Exception exception) {
             ItemBlacklistLogs.warn(
                     CONFIG,
                     "Failed to load config: malformed JSONC. Using empty blacklist."
             );
         }
+    }
+
+    private static void parseItems(
+            BlacklistConfig config,
+            JsonArray entries
+    ) {
+        if (entries == null) {
+            return;
+        }
+
+        for (JsonElement element : entries) {
+            String entry =
+                    getStringEntry(element, "item");
+
+            if (entry == null) {
+                continue;
+            }
+
+            boolean tag =
+                    entry.startsWith(TAG_PREFIX);
+
+            String rawId = tag
+                    ? entry.substring(TAG_PREFIX.length())
+                    : entry;
+
+            ResourceLocation id =
+                    parseNamespacedId(rawId);
+
+            if (id == null) {
+                ItemBlacklistLogs.warn(
+                        CONFIG,
+                        "Ignoring invalid {} entry: {}",
+                        tag ? "tag" : "item",
+                        entry
+                );
+
+                continue;
+            }
+
+            if (tag) {
+                config.blacklistTags.add(id);
+            } else {
+                config.blacklistItems.add(id);
+            }
+        }
+    }
+
+    private static void parsePotions(
+            BlacklistConfig config,
+            JsonArray entries
+    ) {
+        if (entries == null) {
+            return;
+        }
+
+        for (JsonElement element : entries) {
+            String entry =
+                    getStringEntry(element, "potion");
+
+            if (entry == null) {
+                continue;
+            }
+
+            ResourceLocation id =
+                    parseNamespacedId(entry);
+
+            if (id == null) {
+                ItemBlacklistLogs.warn(
+                        CONFIG,
+                        "Ignoring invalid potion entry: {}",
+                        entry
+                );
+
+                continue;
+            }
+
+            config.blacklistPotions.add(id);
+        }
+    }
+
+    private static String getStringEntry(
+            JsonElement element,
+            String type
+    ) {
+        if (!element.isJsonPrimitive()
+                || !element.getAsJsonPrimitive().isString()) {
+            ItemBlacklistLogs.warn(
+                    CONFIG,
+                    "Ignoring non-string {} blacklist entry: {}",
+                    type,
+                    element
+            );
+
+            return null;
+        }
+
+        String entry =
+                element.getAsString().trim();
+
+        if (entry.isEmpty()) {
+            ItemBlacklistLogs.warn(
+                    CONFIG,
+                    "Ignoring empty {} blacklist entry",
+                    type
+            );
+
+            return null;
+        }
+
+        return entry;
+    }
+
+    private static ResourceLocation parseNamespacedId(
+            String entry
+    ) {
+        if (!entry.contains(":")) {
+            return null;
+        }
+
+        return ResourceLocation.tryParse(entry);
     }
 
     private static void createDefault(
@@ -153,12 +270,29 @@ public class BlacklistConfig {
                 );
                 writer.newLine();
 
+                writer.newLine();
+
                 writer.write(
-                        "  \"Blacklist\": ["
+                        "  \"Items\": ["
                 );
                 writer.newLine();
 
-                for (String example : COMMENT_EXAMPLES) {
+                for (String example : ITEM_EXAMPLES) {
+                    writer.write(example);
+                    writer.newLine();
+                }
+
+                writer.write("  ],");
+                writer.newLine();
+
+                writer.newLine();
+
+                writer.write(
+                        "  \"Potions\": ["
+                );
+                writer.newLine();
+
+                for (String example : POTION_EXAMPLES) {
                     writer.write(example);
                     writer.newLine();
                 }
@@ -183,64 +317,10 @@ public class BlacklistConfig {
         }
     }
 
-    private static void parseEntry(
-            BlacklistConfig config,
-            String rawEntry
-    ) {
-        String entry =
-                rawEntry.trim();
-
-        if (entry.isEmpty()) {
-            ItemBlacklistLogs.warn(
-                    CONFIG,
-                    "Ignoring empty blacklist entry"
-            );
-
-            return;
-        }
-
-        boolean tag =
-                entry.startsWith(TAG_PREFIX);
-
-        String rawId = tag
-                ? entry.substring(TAG_PREFIX.length())
-                : entry;
-
-        ResourceLocation id =
-                parseNamespacedId(rawId);
-
-        if (id == null) {
-            ItemBlacklistLogs.warn(
-                    CONFIG,
-                    "Ignoring invalid {} entry: {}",
-                    tag ? "tag" : "item",
-                    entry
-            );
-
-            return;
-        }
-
-        if (tag) {
-            config.blacklistTags.add(id);
-        } else {
-            config.blacklist.add(id);
-        }
-    }
-
-    private static ResourceLocation parseNamespacedId(
-            String entry
-    ) {
-        if (!entry.contains(":")) {
-            return null;
-        }
-
-        return ResourceLocation.tryParse(entry);
-    }
-
     private static void logLoadedEntries(
             BlacklistConfig config
     ) {
-        long vanillaItems = config.blacklist.stream()
+        long vanillaItems = config.blacklistItems.stream()
                 .filter(id ->
                         id.getNamespace().equals(
                                 VANILLA_NAMESPACE
@@ -256,23 +336,32 @@ public class BlacklistConfig {
                 )
                 .count();
 
+        long vanillaPotions = config.blacklistPotions.stream()
+                .filter(id ->
+                        id.getNamespace().equals(
+                                VANILLA_NAMESPACE
+                        )
+                )
+                .count();
+
         long moddedItems =
-                config.blacklist.size() - vanillaItems;
+                config.blacklistItems.size() - vanillaItems;
 
         long moddedTags =
                 config.blacklistTags.size() - vanillaTags;
 
+        long moddedPotions =
+                config.blacklistPotions.size() - vanillaPotions;
+
         ItemBlacklistLogs.info(
                 CONFIG,
-                "Loaded blacklist config with {} vanilla {}, {} vanilla {}, {} modded {}, and {} modded {}",
+                "Loaded blacklist config with {} vanilla items, {} vanilla tags, {} vanilla potions, {} modded items, {} modded tags, and {} modded potions",
                 vanillaItems,
-                vanillaItems == 1 ? "item" : "items",
                 vanillaTags,
-                vanillaTags == 1 ? "tag" : "tags",
+                vanillaPotions,
                 moddedItems,
-                moddedItems == 1 ? "item" : "items",
                 moddedTags,
-                moddedTags == 1 ? "tag" : "tags"
+                moddedPotions
         );
     }
 }

@@ -18,6 +18,8 @@ repositories {
 
 dependencies {
     compileOnly 'org.spongepowered:mixin:0.8.7'
+
+    compileOnly "mezz.jei:jei-${minecraft_version}-common-api:${jei_version}"
 }
 
 neoForge {

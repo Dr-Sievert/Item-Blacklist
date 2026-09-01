@@ -1,11 +1,13 @@
 package net.sievert.item_blacklist.blacklist;
 
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.alchemy.PotionContents;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
@@ -28,10 +30,16 @@ public final class BlacklistManager {
     private static final Set<ResourceLocation> BLACKLISTED_TAGS =
             new LinkedHashSet<>();
 
+    private static final Set<ResourceLocation> BLACKLISTED_POTIONS =
+            new LinkedHashSet<>();
+
     private static final Map<ResourceLocation, Set<ResourceLocation>> RESOLVED_TAG_ITEMS =
             new LinkedHashMap<>();
 
     private static final Set<ResourceLocation> SYNCED_BLACKLIST =
+            new LinkedHashSet<>();
+
+    private static final Set<ResourceLocation> SYNCED_POTIONS =
             new LinkedHashSet<>();
 
     private static boolean syncedBlacklistActive;
@@ -41,6 +49,7 @@ public final class BlacklistManager {
     public static void resolve() {
         RESOLVED_BLACKLIST.clear();
         BLACKLISTED_TAGS.clear();
+        BLACKLISTED_POTIONS.clear();
         RESOLVED_TAG_ITEMS.clear();
 
         if (ItemBlacklist.CONFIG == null) {
@@ -48,11 +57,15 @@ public final class BlacklistManager {
         }
 
         RESOLVED_BLACKLIST.addAll(
-                ItemBlacklist.CONFIG.blacklist
+                ItemBlacklist.CONFIG.blacklistItems
         );
 
         BLACKLISTED_TAGS.addAll(
                 ItemBlacklist.CONFIG.blacklistTags
+        );
+
+        BLACKLISTED_POTIONS.addAll(
+                ItemBlacklist.CONFIG.blacklistPotions
         );
 
         for (ResourceLocation tagId : BLACKLISTED_TAGS) {
@@ -86,55 +99,81 @@ public final class BlacklistManager {
 
         ItemBlacklistLogs.info(
                 CONFIG,
-                "Resolved blacklist to {} unique {}",
+                "Resolved blacklist to {} unique items and {} potions",
                 RESOLVED_BLACKLIST.size(),
-                RESOLVED_BLACKLIST.size() == 1
-                        ? "item"
-                        : "items"
+                BLACKLISTED_POTIONS.size()
         );
 
         BlacklistTradeManager.filter();
     }
 
     public static void setSyncedBlacklist(
-            Collection<ResourceLocation> items
+            Collection<ResourceLocation> items,
+            Collection<ResourceLocation> potions
     ) {
         SYNCED_BLACKLIST.clear();
         SYNCED_BLACKLIST.addAll(items);
+
+        SYNCED_POTIONS.clear();
+        SYNCED_POTIONS.addAll(potions);
+
         syncedBlacklistActive = true;
     }
 
     public static void clearSyncedBlacklist() {
         SYNCED_BLACKLIST.clear();
+        SYNCED_POTIONS.clear();
+
         syncedBlacklistActive = false;
     }
 
     public static boolean isEmpty() {
         if (syncedBlacklistActive) {
-            return SYNCED_BLACKLIST.isEmpty();
+            return SYNCED_BLACKLIST.isEmpty()
+                    && SYNCED_POTIONS.isEmpty();
         }
 
         return RESOLVED_BLACKLIST.isEmpty()
-                && BLACKLISTED_TAGS.isEmpty();
+                && BLACKLISTED_TAGS.isEmpty()
+                && BLACKLISTED_POTIONS.isEmpty();
     }
 
-    public static boolean isResolvedBlacklisted(
+    public static boolean isBlacklisted(
             ItemStack stack
     ) {
-        return isResolvedBlacklisted(
-                stack.getItem()
-        );
+        if (isBlacklisted(stack.getItem())) {
+            return true;
+        }
+
+        PotionContents contents =
+                stack.get(DataComponents.POTION_CONTENTS);
+
+        if (contents == null) {
+            return false;
+        }
+
+        return contents.potion()
+                .map(holder ->
+                        holder.unwrapKey()
+                                .map(key ->
+                                        isBlacklistedPotion(
+                                                key.location()
+                                        )
+                                )
+                                .orElse(false)
+                )
+                .orElse(false);
     }
 
-    public static boolean isResolvedBlacklisted(
+    public static boolean isBlacklisted(
             Item item
     ) {
-        return isResolvedBlacklisted(
+        return isBlacklisted(
                 BuiltInRegistries.ITEM.getKey(item)
         );
     }
 
-    public static boolean isResolvedBlacklisted(
+    public static boolean isBlacklisted(
             ResourceLocation itemId
     ) {
         if (syncedBlacklistActive) {
@@ -144,22 +183,14 @@ public final class BlacklistManager {
         return RESOLVED_BLACKLIST.contains(itemId);
     }
 
-    public static boolean isBlacklisted(
-            ItemStack stack
+    public static boolean isBlacklistedPotion(
+            ResourceLocation potionId
     ) {
-        return isResolvedBlacklisted(stack);
-    }
+        if (syncedBlacklistActive) {
+            return SYNCED_POTIONS.contains(potionId);
+        }
 
-    public static boolean isBlacklisted(
-            Item item
-    ) {
-        return isResolvedBlacklisted(item);
-    }
-
-    public static boolean isBlacklisted(
-            ResourceLocation itemId
-    ) {
-        return isResolvedBlacklisted(itemId);
+        return BLACKLISTED_POTIONS.contains(potionId);
     }
 
     public static boolean isBlacklistedBlock(
@@ -167,20 +198,22 @@ public final class BlacklistManager {
             BlockPos pos,
             BlockState state
     ) {
-        Block block = state.getBlock();
+        Block block =
+                state.getBlock();
 
-        if (isResolvedBlacklisted(block.asItem())) {
+        if (isBlacklisted(block.asItem())) {
             return true;
         }
 
-        ItemStack cloneStack = block.getCloneItemStack(
-                level,
-                pos,
-                state
-        );
+        ItemStack cloneStack =
+                block.getCloneItemStack(
+                        level,
+                        pos,
+                        state
+                );
 
         return !cloneStack.isEmpty()
-                && isResolvedBlacklisted(cloneStack);
+                && isBlacklisted(cloneStack);
     }
 
     public static boolean isBlacklistedTag(
@@ -215,6 +248,12 @@ public final class BlacklistManager {
     public static Set<ResourceLocation> getBlacklistedTags() {
         return Set.copyOf(
                 BLACKLISTED_TAGS
+        );
+    }
+
+    public static Set<ResourceLocation> getBlacklistedPotions() {
+        return Set.copyOf(
+                BLACKLISTED_POTIONS
         );
     }
 }

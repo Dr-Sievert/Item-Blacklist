@@ -6,11 +6,13 @@ import net.minecraft.network.codec.StreamCodec;
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload;
 import net.minecraft.resources.ResourceLocation;
 import net.sievert.item_blacklist.ItemBlacklist;
+import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 
 public record BlacklistSyncPayload(
-        List<ResourceLocation> items
+        List<ResourceLocation> items,
+        List<ResourceLocation> potions
 ) implements CustomPacketPayload {
 
     public static final CustomPacketPayload.Type<BlacklistSyncPayload> TYPE =
@@ -27,15 +29,20 @@ public record BlacklistSyncPayload(
                             ByteBufCodecs.list()
                     ),
                     BlacklistSyncPayload::items,
+                    ResourceLocation.STREAM_CODEC.apply(
+                            ByteBufCodecs.list()
+                    ),
+                    BlacklistSyncPayload::potions,
                     BlacklistSyncPayload::new
             );
 
     public BlacklistSyncPayload {
         items = List.copyOf(items);
+        potions = List.copyOf(potions);
     }
 
     @Override
-    public CustomPacketPayload.Type<? extends CustomPacketPayload> type() {
+    public CustomPacketPayload.@NotNull Type<? extends CustomPacketPayload> type() {
         return TYPE;
     }
 }

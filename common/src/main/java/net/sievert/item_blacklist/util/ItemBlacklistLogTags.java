@@ -6,6 +6,7 @@ public enum ItemBlacklistLogTags {
     INIT,
     ITEM,
     LOOT,
+    POTION,
     RECIPE,
     TAG,
     TRADE;

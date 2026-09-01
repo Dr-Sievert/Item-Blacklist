@@ -66,7 +66,7 @@ public abstract class MappedRegistryMixin<T> {
                 true,
                 holder -> {
                     if (!(holder.value() instanceof Item item)
-                            || !BlacklistManager.isResolvedBlacklisted(item)) {
+                            || !BlacklistManager.isBlacklisted(item)) {
                         return null;
                     }
 
@@ -90,7 +90,7 @@ public abstract class MappedRegistryMixin<T> {
                     Item item = block.asItem();
 
                     if (item == Items.AIR
-                            || !BlacklistManager.isResolvedBlacklisted(item)) {
+                            || !BlacklistManager.isBlacklisted(item)) {
                         return null;
                     }
 

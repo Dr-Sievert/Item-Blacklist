@@ -10,6 +10,8 @@
     "LootDataTypeMixin",
     "MappedRegistryMixin",
     "MinecraftServerMixin",
+    "PotionBrewingAccessor",
+    "PotionBrewingMixAccessor",
     "RecipeManagerMixin",
     "ServerPlayerGameModeMixin",
     "TiersMixin",

@@ -2,6 +2,7 @@ package net.sievert.item_blacklist.mixin;
 
 import net.minecraft.server.MinecraftServer;
 import net.sievert.item_blacklist.ItemBlacklist;
+import net.sievert.item_blacklist.blacklist.BlacklistBrewingManager;
 import net.sievert.item_blacklist.blacklist.BlacklistLogReport;
 import net.sievert.item_blacklist.blacklist.BlacklistManager;
 import net.sievert.item_blacklist.blacklist.BlacklistValidator;
@@ -46,7 +47,15 @@ public abstract class MinecraftServerMixin {
                 ItemBlacklist.CONFIG
         );
 
+        BlacklistValidator.validatePotions(
+                ItemBlacklist.CONFIG
+        );
+
         BlacklistManager.resolve();
+
+        BlacklistBrewingManager.filter(
+                server.potionBrewing()
+        );
 
         server.reloadResources(
                 server.getPackRepository().getSelectedIds()

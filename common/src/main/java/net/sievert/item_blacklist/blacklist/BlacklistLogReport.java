@@ -12,6 +12,7 @@ import java.util.Set;
 
 import static net.sievert.item_blacklist.util.ItemBlacklistLogTags.ITEM;
 import static net.sievert.item_blacklist.util.ItemBlacklistLogTags.LOOT;
+import static net.sievert.item_blacklist.util.ItemBlacklistLogTags.POTION;
 import static net.sievert.item_blacklist.util.ItemBlacklistLogTags.RECIPE;
 import static net.sievert.item_blacklist.util.ItemBlacklistLogTags.TAG;
 import static net.sievert.item_blacklist.util.ItemBlacklistLogTags.TRADE;
@@ -24,10 +25,16 @@ public final class BlacklistLogReport {
     private static final Map<ResourceLocation, Report> ITEMS =
             new LinkedHashMap<>();
 
+    private static final Map<ResourceLocation, Report> POTIONS =
+            new LinkedHashMap<>();
+
     private static final Set<ResourceLocation> CLEARED_TAGS =
             new LinkedHashSet<>();
 
     private static final Set<ResourceLocation> REMOVED_RECIPES =
+            new LinkedHashSet<>();
+
+    private static final Set<String> REMOVED_BREWING_RECIPES =
             new LinkedHashSet<>();
 
     private static final Set<String> REMOVED_TRADES =
@@ -44,9 +51,11 @@ public final class BlacklistLogReport {
     public static synchronized void reset() {
         TAGS.clear();
         ITEMS.clear();
+        POTIONS.clear();
 
         CLEARED_TAGS.clear();
         REMOVED_RECIPES.clear();
+        REMOVED_BREWING_RECIPES.clear();
         REMOVED_TRADES.clear();
         AFFECTED_LOOT_TABLES.clear();
 
@@ -54,18 +63,44 @@ public final class BlacklistLogReport {
         removedLootEntries = 0;
     }
 
+    public static synchronized void recordBlacklistedItem(
+            ResourceLocation item
+    ) {
+        report(
+                ITEMS,
+                item
+        );
+    }
+
     public static synchronized void recordBlacklistedTag(
             ResourceLocation tag
     ) {
-        report(TAGS, tag);
+        report(
+                TAGS,
+                tag
+        );
+
         CLEARED_TAGS.add(tag);
+    }
+
+    public static synchronized void recordBlacklistedPotion(
+            ResourceLocation potion
+    ) {
+        report(
+                POTIONS,
+                potion
+        );
     }
 
     public static synchronized void recordTagRemoval(
             ResourceLocation item,
             ResourceLocation tag
     ) {
-        report(ITEMS, item).tags.add(tag);
+        report(
+                ITEMS,
+                item
+        ).tags.add(tag);
+
         removedTagEntries++;
     }
 
@@ -73,7 +108,11 @@ public final class BlacklistLogReport {
             ResourceLocation tag,
             ResourceLocation recipe
     ) {
-        report(TAGS, tag).recipes.add(recipe);
+        report(
+                TAGS,
+                tag
+        ).recipes.add(recipe);
+
         REMOVED_RECIPES.add(recipe);
     }
 
@@ -81,15 +120,58 @@ public final class BlacklistLogReport {
             ResourceLocation item,
             ResourceLocation recipe
     ) {
-        report(ITEMS, item).recipes.add(recipe);
+        report(
+                ITEMS,
+                item
+        ).recipes.add(recipe);
+
         REMOVED_RECIPES.add(recipe);
+    }
+
+    public static synchronized void recordBrewingRecipeItemRemoval(
+            ResourceLocation item,
+            String recipe
+    ) {
+        report(
+                ITEMS,
+                item
+        ).brewingRecipes.add(recipe);
+
+        REMOVED_BREWING_RECIPES.add(recipe);
+    }
+
+    public static synchronized void recordBrewingRecipeTagRemoval(
+            ResourceLocation tag,
+            String recipe
+    ) {
+        report(
+                TAGS,
+                tag
+        ).brewingRecipes.add(recipe);
+
+        REMOVED_BREWING_RECIPES.add(recipe);
+    }
+
+    public static synchronized void recordBrewingRecipePotionRemoval(
+            ResourceLocation potion,
+            String recipe
+    ) {
+        report(
+                POTIONS,
+                potion
+        ).brewingRecipes.add(recipe);
+
+        REMOVED_BREWING_RECIPES.add(recipe);
     }
 
     public static synchronized void recordLootTagRemoval(
             ResourceLocation tag,
             ResourceLocation lootTable
     ) {
-        report(TAGS, tag).lootTables.add(lootTable);
+        report(
+                TAGS,
+                tag
+        ).lootTables.add(lootTable);
 
         AFFECTED_LOOT_TABLES.add(lootTable);
         removedLootEntries++;
@@ -99,7 +181,10 @@ public final class BlacklistLogReport {
             ResourceLocation item,
             ResourceLocation lootTable
     ) {
-        report(ITEMS, item).lootTables.add(lootTable);
+        report(
+                ITEMS,
+                item
+        ).lootTables.add(lootTable);
 
         AFFECTED_LOOT_TABLES.add(lootTable);
         removedLootEntries++;
@@ -109,7 +194,11 @@ public final class BlacklistLogReport {
             ResourceLocation tag,
             String trade
     ) {
-        report(TAGS, tag).trades.add(trade);
+        report(
+                TAGS,
+                tag
+        ).trades.add(trade);
+
         REMOVED_TRADES.add(trade);
     }
 
@@ -117,7 +206,11 @@ public final class BlacklistLogReport {
             ResourceLocation item,
             String trade
     ) {
-        report(ITEMS, item).trades.add(trade);
+        report(
+                ITEMS,
+                item
+        ).trades.add(trade);
+
         REMOVED_TRADES.add(trade);
     }
 
@@ -168,6 +261,21 @@ public final class BlacklistLogReport {
 
                     logAffectedContent(report);
                 });
+
+        POTIONS.keySet()
+                .stream()
+                .sorted()
+                .forEach(potion -> {
+                    ItemBlacklistLogs.info(
+                            POTION,
+                            "Blacklist details for {}",
+                            potion
+                    );
+
+                    logAffectedContent(
+                            POTIONS.get(potion)
+                    );
+                });
     }
 
     private static void logAffectedContent(
@@ -177,6 +285,12 @@ public final class BlacklistLogReport {
                 report.recipes,
                 RECIPE,
                 "  Removed recipe: {}"
+        );
+
+        logEntries(
+                report.brewingRecipes,
+                RECIPE,
+                "  Removed brewing recipe: {}"
         );
 
         logEntries(
@@ -231,12 +345,16 @@ public final class BlacklistLogReport {
             );
         }
 
-        if (!REMOVED_RECIPES.isEmpty()) {
+        int removedRecipeCount =
+                REMOVED_RECIPES.size()
+                        + REMOVED_BREWING_RECIPES.size();
+
+        if (removedRecipeCount > 0) {
             ItemBlacklistLogs.info(
                     RECIPE,
                     "Removed {} disabled {}",
-                    REMOVED_RECIPES.size(),
-                    REMOVED_RECIPES.size() == 1
+                    removedRecipeCount,
+                    removedRecipeCount == 1
                             ? "recipe"
                             : "recipes"
             );
@@ -285,6 +403,9 @@ public final class BlacklistLogReport {
                 new LinkedHashSet<>();
 
         private final Set<ResourceLocation> recipes =
+                new LinkedHashSet<>();
+
+        private final Set<String> brewingRecipes =
                 new LinkedHashSet<>();
 
         private final Set<ResourceLocation> lootTables =

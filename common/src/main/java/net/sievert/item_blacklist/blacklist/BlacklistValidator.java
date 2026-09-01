@@ -20,10 +20,14 @@ public final class BlacklistValidator {
             BlacklistConfig config
     ) {
         validate(
-                config.blacklist,
+                config.blacklistItems,
                 BuiltInRegistries.ITEM::containsKey,
                 "item",
                 false
+        );
+
+        config.blacklistItems.forEach(
+                BlacklistLogReport::recordBlacklistedItem
         );
     }
 
@@ -35,6 +39,21 @@ public final class BlacklistValidator {
                 BlacklistValidator::isValidItemTag,
                 "tag",
                 true
+        );
+    }
+
+    public static void validatePotions(
+            BlacklistConfig config
+    ) {
+        validate(
+                config.blacklistPotions,
+                BuiltInRegistries.POTION::containsKey,
+                "potion",
+                false
+        );
+
+        config.blacklistPotions.forEach(
+                BlacklistLogReport::recordBlacklistedPotion
         );
     }
 
@@ -52,13 +71,20 @@ public final class BlacklistValidator {
                 return false;
             }
 
-            ItemBlacklistLogs.warn(
-                    CONFIG,
-                    tag
-                            ? "Ignoring unknown item tag in blacklist: #{}"
-                            : "Ignoring unknown item in blacklist: {}",
-                    id
-            );
+            if (tag) {
+                ItemBlacklistLogs.warn(
+                        CONFIG,
+                        "Ignoring unknown item tag in blacklist: #{}",
+                        id
+                );
+            } else {
+                ItemBlacklistLogs.warn(
+                        CONFIG,
+                        "Ignoring unknown {} in blacklist: {}",
+                        type,
+                        id
+                );
+            }
 
             return true;
         });
