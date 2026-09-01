@@ -1,9 +1,13 @@
 package net.sievert.item_blacklist.blacklist;
 
+import net.minecraft.core.Registry;
+import net.minecraft.core.RegistryAccess;
 import net.minecraft.core.registries.BuiltInRegistries;
+import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.enchantment.Enchantment;
 import net.sievert.item_blacklist.config.BlacklistConfig;
 import net.sievert.item_blacklist.util.ItemBlacklistLogs;
 
@@ -37,7 +41,7 @@ public final class BlacklistValidator {
         validate(
                 config.blacklistTags,
                 BlacklistValidator::isValidItemTag,
-                "tag",
+                "item",
                 true
         );
     }
@@ -54,6 +58,37 @@ public final class BlacklistValidator {
 
         config.blacklistPotions.forEach(
                 BlacklistLogReport::recordBlacklistedPotion
+        );
+    }
+
+    public static void validateEnchantments(
+            BlacklistConfig config,
+            RegistryAccess registryAccess
+    ) {
+        Registry<Enchantment> enchantments =
+                registryAccess.registryOrThrow(
+                        Registries.ENCHANTMENT
+                );
+
+        validate(
+                config.blacklistEnchantments,
+                enchantments::containsKey,
+                "enchantment",
+                false
+        );
+
+        validate(
+                config.blacklistEnchantmentTags,
+                id -> isValidEnchantmentTag(
+                        enchantments,
+                        id
+                ),
+                "enchantment",
+                true
+        );
+
+        config.blacklistEnchantments.forEach(
+                BlacklistLogReport::recordBlacklistedEnchantment
         );
     }
 
@@ -74,7 +109,8 @@ public final class BlacklistValidator {
             if (tag) {
                 ItemBlacklistLogs.warn(
                         CONFIG,
-                        "Ignoring unknown item tag in blacklist: #{}",
+                        "Ignoring unknown {} tag in blacklist: #{}",
+                        type,
                         id
                 );
             } else {
@@ -92,13 +128,17 @@ public final class BlacklistValidator {
         int invalidCount =
                 originalSize - entries.size();
 
+        String displayType = tag
+                ? type + " tag"
+                : type;
+
         ItemBlacklistLogs.info(
                 CONFIG,
                 "Validated blacklist with {} valid {} and {} unknown {}",
                 entries.size(),
-                pluralize(type, entries.size()),
+                pluralize(displayType, entries.size()),
                 invalidCount,
-                pluralize(type, invalidCount)
+                pluralize(displayType, invalidCount)
         );
     }
 
@@ -111,6 +151,20 @@ public final class BlacklistValidator {
         );
 
         return BuiltInRegistries.ITEM
+                .getTag(tag)
+                .isPresent();
+    }
+
+    private static boolean isValidEnchantmentTag(
+            Registry<Enchantment> enchantments,
+            ResourceLocation tagId
+    ) {
+        TagKey<Enchantment> tag = TagKey.create(
+                Registries.ENCHANTMENT,
+                tagId
+        );
+
+        return enchantments
                 .getTag(tag)
                 .isPresent();
     }

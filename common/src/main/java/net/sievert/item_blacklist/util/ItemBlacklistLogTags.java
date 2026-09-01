@@ -3,6 +3,7 @@ package net.sievert.item_blacklist.util;
 public enum ItemBlacklistLogTags {
 
     CONFIG,
+    ENCHANTMENT,
     INIT,
     ITEM,
     LOOT,

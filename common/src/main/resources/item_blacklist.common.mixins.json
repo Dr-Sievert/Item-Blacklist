@@ -3,6 +3,7 @@
   "package": "net.sievert.item_blacklist.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "AnvilMenuMixin",
     "BlockStateBaseMixin",
     "InventoryMixin",
     "ItemMixin",

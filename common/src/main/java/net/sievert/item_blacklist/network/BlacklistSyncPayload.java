@@ -12,11 +12,12 @@ import java.util.List;
 
 public record BlacklistSyncPayload(
         List<ResourceLocation> items,
-        List<ResourceLocation> potions
+        List<ResourceLocation> potions,
+        List<ResourceLocation> enchantments
 ) implements CustomPacketPayload {
 
-    public static final CustomPacketPayload.Type<BlacklistSyncPayload> TYPE =
-            new CustomPacketPayload.Type<>(
+    public static final Type<BlacklistSyncPayload> TYPE =
+            new Type<>(
                     ResourceLocation.fromNamespaceAndPath(
                             ItemBlacklist.MOD_ID,
                             "sync_blacklist"
@@ -33,16 +34,21 @@ public record BlacklistSyncPayload(
                             ByteBufCodecs.list()
                     ),
                     BlacklistSyncPayload::potions,
+                    ResourceLocation.STREAM_CODEC.apply(
+                            ByteBufCodecs.list()
+                    ),
+                    BlacklistSyncPayload::enchantments,
                     BlacklistSyncPayload::new
             );
 
     public BlacklistSyncPayload {
         items = List.copyOf(items);
         potions = List.copyOf(potions);
+        enchantments = List.copyOf(enchantments);
     }
 
     @Override
-    public CustomPacketPayload.@NotNull Type<? extends CustomPacketPayload> type() {
+    public @NotNull Type<? extends CustomPacketPayload> type() {
         return TYPE;
     }
 }

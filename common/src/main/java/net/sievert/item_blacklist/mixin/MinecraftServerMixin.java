@@ -51,7 +51,14 @@ public abstract class MinecraftServerMixin {
                 ItemBlacklist.CONFIG
         );
 
-        BlacklistManager.resolve();
+        BlacklistValidator.validateEnchantments(
+                ItemBlacklist.CONFIG,
+                server.registryAccess()
+        );
+
+        BlacklistManager.resolve(
+                server.registryAccess()
+        );
 
         BlacklistBrewingManager.filter(
                 server.potionBrewing()

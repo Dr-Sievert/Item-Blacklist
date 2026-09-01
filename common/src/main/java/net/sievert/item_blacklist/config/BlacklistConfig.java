@@ -39,6 +39,13 @@ public class BlacklistConfig {
             "    // \"minecraft:long_strength\""
     );
 
+    private static final List<String> ENCHANTMENT_EXAMPLES = List.of(
+            "    // \"minecraft:mending\",",
+            "    // \"#minecraft:curse\",",
+            "    // \"mod_id:mod_enchantment\",",
+            "    // \"#mod_id:mod_enchantment_tag\""
+    );
+
     public final Set<ResourceLocation> blacklistItems =
             new HashSet<>();
 
@@ -46,6 +53,12 @@ public class BlacklistConfig {
             new HashSet<>();
 
     public final Set<ResourceLocation> blacklistPotions =
+            new HashSet<>();
+
+    public final Set<ResourceLocation> blacklistEnchantments =
+            new HashSet<>();
+
+    public final Set<ResourceLocation> blacklistEnchantmentTags =
             new HashSet<>();
 
     public boolean detailedLog;
@@ -119,6 +132,11 @@ public class BlacklistConfig {
             parsePotions(
                     config,
                     object.getAsJsonArray("Potions")
+            );
+
+            parseEnchantments(
+                    config,
+                    object.getAsJsonArray("Enchantments")
             );
         } catch (Exception exception) {
             ItemBlacklistLogs.warn(
@@ -203,6 +221,51 @@ public class BlacklistConfig {
             }
 
             config.blacklistPotions.add(id);
+        }
+    }
+
+    private static void parseEnchantments(
+            BlacklistConfig config,
+            JsonArray entries
+    ) {
+        if (entries == null) {
+            return;
+        }
+
+        for (JsonElement element : entries) {
+            String entry =
+                    getStringEntry(element, "enchantment");
+
+            if (entry == null) {
+                continue;
+            }
+
+            boolean tag =
+                    entry.startsWith(TAG_PREFIX);
+
+            String rawId = tag
+                    ? entry.substring(TAG_PREFIX.length())
+                    : entry;
+
+            ResourceLocation id =
+                    parseNamespacedId(rawId);
+
+            if (id == null) {
+                ItemBlacklistLogs.warn(
+                        CONFIG,
+                        "Ignoring invalid {} entry: {}",
+                        tag ? "enchantment tag" : "enchantment",
+                        entry
+                );
+
+                continue;
+            }
+
+            if (tag) {
+                config.blacklistEnchantmentTags.add(id);
+            } else {
+                config.blacklistEnchantments.add(id);
+            }
         }
     }
 
@@ -297,6 +360,21 @@ public class BlacklistConfig {
                     writer.newLine();
                 }
 
+                writer.write("  ],");
+                writer.newLine();
+
+                writer.newLine();
+
+                writer.write(
+                        "  \"Enchantments\": ["
+                );
+                writer.newLine();
+
+                for (String example : ENCHANTMENT_EXAMPLES) {
+                    writer.write(example);
+                    writer.newLine();
+                }
+
                 writer.write("  ]");
                 writer.newLine();
 
@@ -344,6 +422,22 @@ public class BlacklistConfig {
                 )
                 .count();
 
+        long vanillaEnchantments = config.blacklistEnchantments.stream()
+                .filter(id ->
+                        id.getNamespace().equals(
+                                VANILLA_NAMESPACE
+                        )
+                )
+                .count();
+
+        long vanillaEnchantmentTags = config.blacklistEnchantmentTags.stream()
+                .filter(id ->
+                        id.getNamespace().equals(
+                                VANILLA_NAMESPACE
+                        )
+                )
+                .count();
+
         long moddedItems =
                 config.blacklistItems.size() - vanillaItems;
 
@@ -353,15 +447,25 @@ public class BlacklistConfig {
         long moddedPotions =
                 config.blacklistPotions.size() - vanillaPotions;
 
+        long moddedEnchantments =
+                config.blacklistEnchantments.size() - vanillaEnchantments;
+
+        long moddedEnchantmentTags =
+                config.blacklistEnchantmentTags.size() - vanillaEnchantmentTags;
+
         ItemBlacklistLogs.info(
                 CONFIG,
-                "Loaded blacklist config with {} vanilla items, {} vanilla tags, {} vanilla potions, {} modded items, {} modded tags, and {} modded potions",
+                "Loaded blacklist config with {} vanilla items, {} vanilla item tags, {} vanilla potions, {} vanilla enchantments, {} vanilla enchantment tags, {} modded items, {} modded item tags, {} modded potions, {} modded enchantments, and {} modded enchantment tags",
                 vanillaItems,
                 vanillaTags,
                 vanillaPotions,
+                vanillaEnchantments,
+                vanillaEnchantmentTags,
                 moddedItems,
                 moddedTags,
-                moddedPotions
+                moddedPotions,
+                moddedEnchantments,
+                moddedEnchantmentTags
         );
     }
 }

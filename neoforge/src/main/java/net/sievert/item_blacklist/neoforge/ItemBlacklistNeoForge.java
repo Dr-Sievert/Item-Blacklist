@@ -56,7 +56,8 @@ public final class ItemBlacklistNeoForge {
                 (payload, context) -> {
                     BlacklistManager.setSyncedBlacklist(
                             payload.items(),
-                            payload.potions()
+                            payload.potions(),
+                            payload.enchantments()
                     );
 
                     BlacklistBrewingManager.filter(
@@ -65,7 +66,7 @@ public final class ItemBlacklistNeoForge {
                                     .potionBrewing()
                     );
 
-                    BlacklistJeiManager.filterBrewingRecipes();
+                    BlacklistJeiManager.filterRecipes();
                 }
         );
     }
@@ -99,6 +100,9 @@ public final class ItemBlacklistNeoForge {
                         ),
                         List.copyOf(
                                 BlacklistManager.getBlacklistedPotions()
+                        ),
+                        List.copyOf(
+                                BlacklistManager.getBlacklistedEnchantments()
                         )
                 )
         );

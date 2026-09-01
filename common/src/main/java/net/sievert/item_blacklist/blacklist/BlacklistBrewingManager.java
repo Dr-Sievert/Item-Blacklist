@@ -100,12 +100,14 @@ public final class BlacklistBrewingManager {
             if (outputBlacklisted) {
                 BlacklistLogReport.recordBrewingRecipePotionRemoval(
                         outputPotion,
-                        recipe
+                        recipe,
+                        "output"
                 );
             } else if (inputBlacklisted) {
                 BlacklistLogReport.recordBrewingRecipePotionRemoval(
                         inputPotion,
-                        recipe
+                        recipe,
+                        "input"
                 );
             } else {
                 recordIngredientRemoval(
@@ -178,21 +180,19 @@ public final class BlacklistBrewingManager {
                             outputId
                     );
 
-            if (inputBlacklisted) {
-                recordItemRemoval(
-                        inputId,
-                        recipe
-                );
-            }
-
             if (outputBlacklisted) {
                 recordItemRemoval(
                         outputId,
-                        recipe
+                        recipe,
+                        "output"
                 );
-            }
-
-            if (ingredientBlacklisted) {
+            } else if (inputBlacklisted) {
+                recordItemRemoval(
+                        inputId,
+                        recipe,
+                        "input"
+                );
+            } else {
                 recordIngredientRemoval(
                         ingredient,
                         recipe
@@ -225,18 +225,21 @@ public final class BlacklistBrewingManager {
         for (ResourceLocation item : items) {
             recordItemRemoval(
                     item,
-                    recipe
+                    recipe,
+                    "ingredient"
             );
         }
     }
 
     private static void recordItemRemoval(
             ResourceLocation item,
-            String recipe
+            String recipe,
+            String role
     ) {
         BlacklistLogReport.recordBrewingRecipeItemRemoval(
                 item,
-                recipe
+                recipe,
+                role
         );
 
         for (ResourceLocation tag :
@@ -249,7 +252,8 @@ public final class BlacklistBrewingManager {
 
             BlacklistLogReport.recordBrewingRecipeTagRemoval(
                     tag,
-                    recipe
+                    recipe,
+                    role
             );
         }
     }

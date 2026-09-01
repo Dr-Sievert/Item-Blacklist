@@ -18,7 +18,8 @@ public final class ItemBlacklistFabricClient implements ClientModInitializer {
                 (payload, context) -> {
                     BlacklistManager.setSyncedBlacklist(
                             payload.items(),
-                            payload.potions()
+                            payload.potions(),
+                            payload.enchantments()
                     );
 
                     Minecraft minecraft =
@@ -30,7 +31,7 @@ public final class ItemBlacklistFabricClient implements ClientModInitializer {
                         );
                     }
 
-                    BlacklistJeiManager.filterBrewingRecipes();
+                    BlacklistJeiManager.filterRecipes();
                 }
         );
 
