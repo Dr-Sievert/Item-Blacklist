@@ -3,16 +3,6 @@ plugins {
     id 'net.neoforged.moddev'
 }
 
-repositories {
-    maven {
-        url = 'https://maven.blamejared.com'
-
-        content {
-            includeGroup 'mezz.jei'
-        }
-    }
-}
-
 dependencies {
     runtimeOnly "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
 }
@@ -20,11 +10,14 @@ dependencies {
 neoForge {
     version = neoforge_version
 
-    // Automatically enable NeoForge AccessTransformers if the file exists
-    def at = project(':common').file('src/main/resources/META-INF/accesstransformer.cfg')
+    def at = project(':common').file(
+            'src/main/resources/META-INF/accesstransformer.cfg'
+    )
 
     if (at.exists()) {
-        accessTransformers.from(at.absolutePath)
+        accessTransformers.from(
+                at.absolutePath
+        )
     }
 
     parchment {
@@ -34,9 +27,16 @@ neoForge {
 
     runs {
         configureEach {
-            systemProperty('neoforge.enabledGameTestNamespaces', mod_id)
-            ideName = "NeoForge ${it.name.capitalize()} (${project.path})"
-            logLevel = org.slf4j.event.Level.DEBUG
+            systemProperty(
+                    'neoforge.enabledGameTestNamespaces',
+                    mod_id
+            )
+
+            ideName =
+                    "NeoForge ${it.name.capitalize()} (${project.path})"
+
+            logLevel =
+                    org.slf4j.event.Level.DEBUG
         }
 
         client {

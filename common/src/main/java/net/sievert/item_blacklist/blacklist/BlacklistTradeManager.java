@@ -33,14 +33,14 @@ import java.util.Set;
 
 import static net.sievert.item_blacklist.util.ItemBlacklistLogTags.TRADE;
 
-public final class TradeBlacklistManager {
+public final class BlacklistTradeManager {
 
     private static Map<VillagerProfession, Int2ObjectMap<VillagerTrades.ItemListing[]>> originalTrades;
     private static Int2ObjectMap<VillagerTrades.ItemListing[]> originalWanderingTraderTrades;
     private static Map<VillagerProfession, Int2ObjectMap<VillagerTrades.ItemListing[]>> originalExperimentalTrades;
     private static List<Pair<VillagerTrades.ItemListing[], Integer>> originalExperimentalWanderingTraderTrades;
 
-    private TradeBlacklistManager() {}
+    private BlacklistTradeManager() {}
 
     public static void filter() {
         captureOriginalTrades();
@@ -284,30 +284,54 @@ public final class TradeBlacklistManager {
                  "EnchantedItemForEmeralds",
                  "ItemsAndEmeraldsToItems",
                  "ItemsForEmeralds",
-                 "SuspiciousStewForEmerald",
-                 "TippedArrowForItemsAndEmeralds",
-                 "TreasureMapForEmeralds",
-                 "EnchantBookForEmeralds" ->
+                 "TippedArrowForItemsAndEmeralds" ->
                     addIfBlacklisted(
                             Items.EMERALD,
                             TradeDirection.BUYING,
                             matches
                     );
 
-            case "EmeraldForItems",
-                 "EmeraldsForVillagerTypeItem" ->
-                    addIfBlacklisted(
-                            Items.EMERALD,
-                            TradeDirection.SELLING,
-                            matches
-                    );
+            case "SuspiciousStewForEmerald" -> {
+                addIfBlacklisted(
+                        Items.EMERALD,
+                        TradeDirection.BUYING,
+                        matches
+                );
 
-            default -> {
+                addIfBlacklisted(
+                        Items.SUSPICIOUS_STEW,
+                        TradeDirection.SELLING,
+                        matches
+                );
             }
-        }
 
-        switch (listingName) {
+            case "TreasureMapForEmeralds" -> {
+                addIfBlacklisted(
+                        Items.EMERALD,
+                        TradeDirection.BUYING,
+                        matches
+                );
+
+                addIfBlacklisted(
+                        Items.COMPASS,
+                        TradeDirection.BUYING,
+                        matches
+                );
+
+                addIfBlacklisted(
+                        Items.FILLED_MAP,
+                        TradeDirection.SELLING,
+                        matches
+                );
+            }
+
             case "EnchantBookForEmeralds" -> {
+                addIfBlacklisted(
+                        Items.EMERALD,
+                        TradeDirection.BUYING,
+                        matches
+                );
+
                 addIfBlacklisted(
                         Items.BOOK,
                         TradeDirection.BUYING,
@@ -321,26 +345,13 @@ public final class TradeBlacklistManager {
                 );
             }
 
-            case "SuspiciousStewForEmerald" ->
+            case "EmeraldForItems",
+                 "EmeraldsForVillagerTypeItem" ->
                     addIfBlacklisted(
-                            Items.SUSPICIOUS_STEW,
+                            Items.EMERALD,
                             TradeDirection.SELLING,
                             matches
                     );
-
-            case "TreasureMapForEmeralds" -> {
-                addIfBlacklisted(
-                        Items.COMPASS,
-                        TradeDirection.BUYING,
-                        matches
-                );
-
-                addIfBlacklisted(
-                        Items.FILLED_MAP,
-                        TradeDirection.SELLING,
-                        matches
-                );
-            }
 
             default -> {
             }

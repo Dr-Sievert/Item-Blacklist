@@ -2,6 +2,7 @@ package net.sievert.item_blacklist.blacklist;
 
 import net.minecraft.resources.ResourceLocation;
 import net.sievert.item_blacklist.ItemBlacklist;
+import net.sievert.item_blacklist.util.ItemBlacklistLogTags;
 import net.sievert.item_blacklist.util.ItemBlacklistLogs;
 
 import java.util.LinkedHashMap;
@@ -17,10 +18,10 @@ import static net.sievert.item_blacklist.util.ItemBlacklistLogTags.TRADE;
 
 public final class BlacklistLogReport {
 
-    private static final Map<ResourceLocation, TagReport> TAGS =
+    private static final Map<ResourceLocation, Report> TAGS =
             new LinkedHashMap<>();
 
-    private static final Map<ResourceLocation, ItemReport> ITEMS =
+    private static final Map<ResourceLocation, Report> ITEMS =
             new LinkedHashMap<>();
 
     private static final Set<ResourceLocation> CLEARED_TAGS =
@@ -56,7 +57,7 @@ public final class BlacklistLogReport {
     public static synchronized void recordBlacklistedTag(
             ResourceLocation tag
     ) {
-        tagReport(tag);
+        report(TAGS, tag);
         CLEARED_TAGS.add(tag);
     }
 
@@ -64,7 +65,7 @@ public final class BlacklistLogReport {
             ResourceLocation item,
             ResourceLocation tag
     ) {
-        report(item).tags.add(tag);
+        report(ITEMS, item).tags.add(tag);
         removedTagEntries++;
     }
 
@@ -72,7 +73,7 @@ public final class BlacklistLogReport {
             ResourceLocation tag,
             ResourceLocation recipe
     ) {
-        tagReport(tag).recipes.add(recipe);
+        report(TAGS, tag).recipes.add(recipe);
         REMOVED_RECIPES.add(recipe);
     }
 
@@ -80,7 +81,7 @@ public final class BlacklistLogReport {
             ResourceLocation item,
             ResourceLocation recipe
     ) {
-        report(item).recipes.add(recipe);
+        report(ITEMS, item).recipes.add(recipe);
         REMOVED_RECIPES.add(recipe);
     }
 
@@ -88,7 +89,7 @@ public final class BlacklistLogReport {
             ResourceLocation tag,
             ResourceLocation lootTable
     ) {
-        tagReport(tag).lootTables.add(lootTable);
+        report(TAGS, tag).lootTables.add(lootTable);
 
         AFFECTED_LOOT_TABLES.add(lootTable);
         removedLootEntries++;
@@ -98,7 +99,7 @@ public final class BlacklistLogReport {
             ResourceLocation item,
             ResourceLocation lootTable
     ) {
-        report(item).lootTables.add(lootTable);
+        report(ITEMS, item).lootTables.add(lootTable);
 
         AFFECTED_LOOT_TABLES.add(lootTable);
         removedLootEntries++;
@@ -108,7 +109,7 @@ public final class BlacklistLogReport {
             ResourceLocation tag,
             String trade
     ) {
-        tagReport(tag).trades.add(trade);
+        report(TAGS, tag).trades.add(trade);
         REMOVED_TRADES.add(trade);
     }
 
@@ -116,7 +117,7 @@ public final class BlacklistLogReport {
             ResourceLocation item,
             String trade
     ) {
-        report(item).trades.add(trade);
+        report(ITEMS, item).trades.add(trade);
         REMOVED_TRADES.add(trade);
     }
 
@@ -135,50 +136,23 @@ public final class BlacklistLogReport {
                 .stream()
                 .sorted()
                 .forEach(tag -> {
-                    TagReport report = TAGS.get(tag);
-
                     ItemBlacklistLogs.info(
                             TAG,
                             "Blacklist details for #{}",
                             tag
                     );
 
-                    report.recipes.stream()
-                            .sorted()
-                            .forEach(recipe ->
-                                    ItemBlacklistLogs.info(
-                                            RECIPE,
-                                            "  Removed recipe: {}",
-                                            recipe
-                                    )
-                            );
-
-                    report.lootTables.stream()
-                            .sorted()
-                            .forEach(lootTable ->
-                                    ItemBlacklistLogs.info(
-                                            LOOT,
-                                            "  Removed from loot table: {}",
-                                            lootTable
-                                    )
-                            );
-
-                    report.trades.stream()
-                            .sorted()
-                            .forEach(trade ->
-                                    ItemBlacklistLogs.info(
-                                            TRADE,
-                                            "  Removed trade: {}",
-                                            trade
-                                    )
-                            );
+                    logAffectedContent(
+                            TAGS.get(tag)
+                    );
                 });
 
         ITEMS.keySet()
                 .stream()
                 .sorted()
                 .forEach(item -> {
-                    ItemReport report = ITEMS.get(item);
+                    Report report =
+                            ITEMS.get(item);
 
                     ItemBlacklistLogs.info(
                             ITEM,
@@ -186,46 +160,52 @@ public final class BlacklistLogReport {
                             item
                     );
 
-                    report.tags.stream()
-                            .sorted()
-                            .forEach(tag ->
-                                    ItemBlacklistLogs.info(
-                                            TAG,
-                                            "  Removed from tag: {}",
-                                            tag
-                                    )
-                            );
+                    logEntries(
+                            report.tags,
+                            TAG,
+                            "  Removed from tag: {}"
+                    );
 
-                    report.recipes.stream()
-                            .sorted()
-                            .forEach(recipe ->
-                                    ItemBlacklistLogs.info(
-                                            RECIPE,
-                                            "  Removed recipe: {}",
-                                            recipe
-                                    )
-                            );
-
-                    report.lootTables.stream()
-                            .sorted()
-                            .forEach(lootTable ->
-                                    ItemBlacklistLogs.info(
-                                            LOOT,
-                                            "  Removed from loot table: {}",
-                                            lootTable
-                                    )
-                            );
-
-                    report.trades.stream()
-                            .sorted()
-                            .forEach(trade ->
-                                    ItemBlacklistLogs.info(
-                                            TRADE,
-                                            "  Removed trade: {}",
-                                            trade
-                                    )
-                            );
+                    logAffectedContent(report);
                 });
+    }
+
+    private static void logAffectedContent(
+            Report report
+    ) {
+        logEntries(
+                report.recipes,
+                RECIPE,
+                "  Removed recipe: {}"
+        );
+
+        logEntries(
+                report.lootTables,
+                LOOT,
+                "  Removed from loot table: {}"
+        );
+
+        logEntries(
+                report.trades,
+                TRADE,
+                "  Removed trade: {}"
+        );
+    }
+
+    private static <T extends Comparable<? super T>> void logEntries(
+            Set<T> entries,
+            ItemBlacklistLogTags tag,
+            String message
+    ) {
+        entries.stream()
+                .sorted()
+                .forEach(entry ->
+                        ItemBlacklistLogs.info(
+                                tag,
+                                message,
+                                entry
+                        )
+                );
     }
 
     private static void logSummaries() {
@@ -289,37 +269,17 @@ public final class BlacklistLogReport {
         }
     }
 
-    private static TagReport tagReport(
-            ResourceLocation tag
+    private static Report report(
+            Map<ResourceLocation, Report> reports,
+            ResourceLocation id
     ) {
-        return TAGS.computeIfAbsent(
-                tag,
-                ignored -> new TagReport()
+        return reports.computeIfAbsent(
+                id,
+                ignored -> new Report()
         );
     }
 
-    private static ItemReport report(
-            ResourceLocation item
-    ) {
-        return ITEMS.computeIfAbsent(
-                item,
-                ignored -> new ItemReport()
-        );
-    }
-
-    private static final class TagReport {
-
-        private final Set<ResourceLocation> recipes =
-                new LinkedHashSet<>();
-
-        private final Set<ResourceLocation> lootTables =
-                new LinkedHashSet<>();
-
-        private final Set<String> trades =
-                new LinkedHashSet<>();
-    }
-
-    private static final class ItemReport {
+    private static final class Report {
 
         private final Set<ResourceLocation> tags =
                 new LinkedHashSet<>();

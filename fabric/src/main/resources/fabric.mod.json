@@ -16,6 +16,9 @@
     "entrypoints": {
         "main": [
             "net.sievert.item_blacklist.fabric.ItemBlacklistFabric"
+        ],
+        "client": [
+            "net.sievert.item_blacklist.fabric.client.ItemBlacklistFabricClient"
         ]
     },
     "depends": {
@@ -25,7 +28,6 @@
         "java": ">=${java_version}"
     },
     "mixins": [
-        "item_blacklist.common.mixins.json",
-        "item_blacklist.fabric.mixins.json"
+        "item_blacklist.common.mixins.json"
     ]
 }

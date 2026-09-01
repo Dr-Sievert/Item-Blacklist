@@ -7,13 +7,6 @@ repositories {
     maven {
         url = 'https://maven.fabricmc.net'
     }
-
-    maven {
-        url = 'https://maven.blamejared.com'
-        content {
-            includeGroup 'mezz.jei'
-        }
-    }
 }
 
 dependencies {
@@ -21,7 +14,9 @@ dependencies {
 
     mappings loom.layered {
         officialMojangMappings()
-        parchment("org.parchmentmc.data:parchment-${parchment_minecraft}:${parchment_version}@zip")
+        parchment(
+                "org.parchmentmc.data:parchment-${parchment_minecraft}:${parchment_version}@zip"
+        )
     }
 
     modImplementation "net.fabricmc:fabric-loader:${fabric_loader_version}"
@@ -33,13 +28,18 @@ dependencies {
 loom {
     log4jConfigs.from file('log4j-dev.xml')
 
-    def aw = project(':common').file("src/main/resources/${mod_id}.accesswidener")
+    def aw = project(':common').file(
+            "src/main/resources/${mod_id}.accesswidener"
+    )
+
     if (aw.exists()) {
         accessWidenerPath.set(aw)
     }
 
     mixin {
-        defaultRefmapName.set("${mod_id}.refmap.json")
+        defaultRefmapName.set(
+                "${mod_id}.refmap.json"
+        )
     }
 
     runs {

@@ -11,6 +11,8 @@
     "MappedRegistryMixin",
     "MinecraftServerMixin",
     "RecipeManagerMixin",
+    "ServerPlayerGameModeMixin",
+    "TiersMixin",
     "VillagerTradesAccessor"
   ],
   "injectors": {

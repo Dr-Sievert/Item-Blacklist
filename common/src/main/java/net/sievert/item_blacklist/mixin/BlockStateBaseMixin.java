@@ -12,7 +12,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockBehaviour;
-import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.BlockHitResult;
 import net.sievert.item_blacklist.blacklist.BlacklistManager;
 import net.sievert.item_blacklist.util.ItemBlacklistLogs;
@@ -42,7 +41,11 @@ public abstract class BlockStateBaseMixin {
             BlockHitResult hitResult,
             CallbackInfoReturnable<InteractionResult> cir
     ) {
-        if (!player.isCreative() && item_blacklist$isBlacklistedBlock(level, hitResult)) {
+        if (!player.isCreative()
+                && item_blacklist$isBlacklistedBlock(
+                level,
+                hitResult
+        )) {
             if (!level.isClientSide) {
                 ItemBlacklistLogs.debug(
                         ITEM,
@@ -54,11 +57,15 @@ public abstract class BlockStateBaseMixin {
             }
 
             player.displayClientMessage(
-                    Component.literal("Disabled by blacklist.").withStyle(ChatFormatting.RED),
+                    Component.literal(
+                            "Disabled by blacklist."
+                    ).withStyle(ChatFormatting.RED),
                     true
             );
 
-            cir.setReturnValue(InteractionResult.CONSUME);
+            cir.setReturnValue(
+                    InteractionResult.CONSUME
+            );
         }
     }
 
@@ -75,7 +82,11 @@ public abstract class BlockStateBaseMixin {
             BlockHitResult hitResult,
             CallbackInfoReturnable<ItemInteractionResult> cir
     ) {
-        if (!player.isCreative() && item_blacklist$isBlacklistedBlock(level, hitResult)) {
+        if (!player.isCreative()
+                && item_blacklist$isBlacklistedBlock(
+                level,
+                hitResult
+        )) {
             if (!level.isClientSide) {
                 ItemBlacklistLogs.debug(
                         ITEM,
@@ -94,7 +105,9 @@ public abstract class BlockStateBaseMixin {
                     true
             );
 
-            cir.setReturnValue(ItemInteractionResult.CONSUME);
+            cir.setReturnValue(
+                    ItemInteractionResult.CONSUME
+            );
         }
     }
 
@@ -103,21 +116,13 @@ public abstract class BlockStateBaseMixin {
             Level level,
             BlockHitResult hitResult
     ) {
-        Block block = this.getBlock();
+        BlockPos pos =
+                hitResult.getBlockPos();
 
-        if (BlacklistManager.isBlacklisted(block.asItem())) {
-            return true;
-        }
-
-        BlockPos pos = hitResult.getBlockPos();
-        BlockState state = level.getBlockState(pos);
-
-        ItemStack cloneStack = block.getCloneItemStack(
+        return BlacklistManager.isBlacklistedBlock(
                 level,
                 pos,
-                state
+                level.getBlockState(pos)
         );
-
-        return !cloneStack.isEmpty() && BlacklistManager.isBlacklisted(cloneStack);
     }
 }

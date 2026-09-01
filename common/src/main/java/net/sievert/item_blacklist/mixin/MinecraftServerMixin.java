@@ -50,6 +50,8 @@ public abstract class MinecraftServerMixin {
 
         server.reloadResources(
                 server.getPackRepository().getSelectedIds()
-        ).thenRun(BlacklistLogReport::flush);
+        ).thenRun(
+                BlacklistLogReport::flush
+        );
     }
 }

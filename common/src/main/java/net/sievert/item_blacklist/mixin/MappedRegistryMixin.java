@@ -8,8 +8,8 @@ import net.minecraft.core.registries.Registries;
 import net.minecraft.resources.ResourceKey;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
-import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.Item;
+import net.minecraft.world.item.Items;
 import net.minecraft.world.level.block.Block;
 import net.sievert.item_blacklist.blacklist.BlacklistLogReport;
 import net.sievert.item_blacklist.blacklist.BlacklistManager;
@@ -42,8 +42,7 @@ public abstract class MappedRegistryMixin<T> {
     private Map<TagKey<T>, List<Holder<T>>> item_blacklist$filterTags(
             Map<TagKey<T>, List<Holder<T>>> tags
     ) {
-        if (BlacklistManager.getResolvedBlacklist().isEmpty()
-                && BlacklistManager.getBlacklistedTags().isEmpty()) {
+        if (BlacklistManager.isEmpty()) {
             return tags;
         }
 
@@ -64,9 +63,10 @@ public abstract class MappedRegistryMixin<T> {
     ) {
         return item_blacklist$filterTags(
                 tags,
+                true,
                 holder -> {
                     if (!(holder.value() instanceof Item item)
-                            || !BlacklistManager.isBlacklisted(item)) {
+                            || !BlacklistManager.isResolvedBlacklisted(item)) {
                         return null;
                     }
 
@@ -81,6 +81,7 @@ public abstract class MappedRegistryMixin<T> {
     ) {
         return item_blacklist$filterTags(
                 tags,
+                false,
                 holder -> {
                     if (!(holder.value() instanceof Block block)) {
                         return null;
@@ -88,8 +89,8 @@ public abstract class MappedRegistryMixin<T> {
 
                     Item item = block.asItem();
 
-                    if (!(item instanceof BlockItem)
-                            || !BlacklistManager.isBlacklisted(item)) {
+                    if (item == Items.AIR
+                            || !BlacklistManager.isResolvedBlacklisted(item)) {
                         return null;
                     }
 
@@ -101,6 +102,7 @@ public abstract class MappedRegistryMixin<T> {
     @Unique
     private Map<TagKey<T>, List<Holder<T>>> item_blacklist$filterTags(
             Map<TagKey<T>, List<Holder<T>>> tags,
+            boolean clearBlacklistedTags,
             Function<Holder<T>, ResourceLocation> blacklistedItemResolver
     ) {
         Map<TagKey<T>, List<Holder<T>>> filtered =
@@ -111,7 +113,8 @@ public abstract class MappedRegistryMixin<T> {
             ResourceLocation tagId =
                     entry.getKey().location();
 
-            if (BlacklistManager.isBlacklistedTag(tagId)) {
+            if (clearBlacklistedTags
+                    && BlacklistManager.isBlacklistedTag(tagId)) {
                 BlacklistLogReport.recordBlacklistedTag(
                         tagId
                 );

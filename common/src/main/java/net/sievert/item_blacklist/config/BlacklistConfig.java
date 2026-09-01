@@ -7,17 +7,12 @@ import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
 import com.google.gson.stream.JsonReader;
 import net.minecraft.resources.ResourceLocation;
-import net.sievert.item_blacklist.platform.ItemBlacklistServices;
 import net.sievert.item_blacklist.util.ItemBlacklistLogs;
 
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.PrintWriter;
+import java.io.BufferedWriter;
 import java.io.Reader;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.HashSet;
 import java.util.List;
@@ -40,104 +35,28 @@ public class BlacklistConfig {
 
     public final Set<ResourceLocation> blacklist = new HashSet<>();
     public final Set<ResourceLocation> blacklistTags = new HashSet<>();
+
     public boolean detailedLog;
 
-    public static BlacklistConfig loadOrCreate() {
-        Path configDir = ItemBlacklistServices.environment().getConfigDirectory();
-        Path configPath = configDir.resolve(CONFIG_FILE);
+    public static BlacklistConfig loadOrCreate(
+            Path configDirectory
+    ) {
+        Path configPath =
+                configDirectory.resolve(CONFIG_FILE);
 
-        BlacklistConfig config = new BlacklistConfig();
+        BlacklistConfig config =
+                new BlacklistConfig();
 
-        if (configPath.toFile().exists()) {
-            try (Reader reader = new InputStreamReader(
-                    new FileInputStream(configPath.toFile()),
-                    StandardCharsets.UTF_8
-            )) {
-                JsonReader jsonReader = new JsonReader(reader);
-                jsonReader.setLenient(true);
-
-                JsonElement root = JsonParser.parseReader(jsonReader);
-
-                if (!root.isJsonObject()) {
-                    throw new JsonSyntaxException("Root element is not a JSON object");
-                }
-
-                JsonObject object = root.getAsJsonObject();
-
-                JsonElement detailedLog = object.get("Detailed Log");
-                if (detailedLog != null
-                        && detailedLog.isJsonPrimitive()
-                        && detailedLog.getAsJsonPrimitive().isBoolean()) {
-                    config.detailedLog = detailedLog.getAsBoolean();
-                }
-
-                JsonArray blacklist = object.getAsJsonArray("Blacklist");
-
-                if (blacklist != null) {
-                    for (JsonElement element : blacklist) {
-                        if (
-                                !element.isJsonPrimitive()
-                                        || !element.getAsJsonPrimitive().isString()
-                        ) {
-                            ItemBlacklistLogs.warn(
-                                    CONFIG,
-                                    "Ignoring non-string blacklist entry: {}",
-                                    element
-                            );
-                            continue;
-                        }
-
-                        parseEntry(
-                                config,
-                                element.getAsString()
-                        );
-                    }
-                }
-            } catch (Exception exception) {
-                ItemBlacklistLogs.warn(
-                        CONFIG,
-                        "Failed to load config: malformed JSONC. Using empty blacklist."
-                );
-            }
+        if (Files.exists(configPath)) {
+            load(
+                    config,
+                    configPath
+            );
         } else {
-            File configDirFile = configDir.toFile();
-
-            if (!configDirFile.exists() && !configDirFile.mkdirs()) {
-                ItemBlacklistLogs.warn(
-                        CONFIG,
-                        "Failed to create config directory: {}",
-                        configDirFile
-                );
-            }
-
-            try (PrintWriter writer = new PrintWriter(
-                    new OutputStreamWriter(
-                            new FileOutputStream(configPath.toFile()),
-                            StandardCharsets.UTF_8
-                    )
-            )) {
-                writer.println("{");
-                writer.println("  \"Detailed Log\": false,");
-                writer.println("  \"Blacklist\": [");
-
-                for (String example : COMMENT_EXAMPLES) {
-                    writer.println(example);
-                }
-
-                writer.println("  ]");
-                writer.println("}");
-
-                ItemBlacklistLogs.info(
-                        CONFIG,
-                        "Created default Item Blacklist config at {}",
-                        configPath
-                );
-            } catch (Exception exception) {
-                ItemBlacklistLogs.error(
-                        CONFIG,
-                        "Failed to write default Item Blacklist config!"
-                );
-            }
+            createDefault(
+                    configDirectory,
+                    configPath
+            );
         }
 
         logLoadedEntries(config);
@@ -145,65 +64,172 @@ public class BlacklistConfig {
         return config;
     }
 
+    private static void load(
+            BlacklistConfig config,
+            Path configPath
+    ) {
+        try (Reader reader = Files.newBufferedReader(
+                configPath,
+                StandardCharsets.UTF_8
+        )) {
+            JsonReader jsonReader =
+                    new JsonReader(reader);
+
+            jsonReader.setLenient(true);
+
+            JsonElement root =
+                    JsonParser.parseReader(jsonReader);
+
+            if (!root.isJsonObject()) {
+                throw new JsonSyntaxException(
+                        "Root element is not a JSON object"
+                );
+            }
+
+            JsonObject object =
+                    root.getAsJsonObject();
+
+            JsonElement detailedLog =
+                    object.get("Detailed Log");
+
+            if (detailedLog != null
+                    && detailedLog.isJsonPrimitive()
+                    && detailedLog.getAsJsonPrimitive().isBoolean()) {
+                config.detailedLog =
+                        detailedLog.getAsBoolean();
+            }
+
+            JsonArray blacklist =
+                    object.getAsJsonArray("Blacklist");
+
+            if (blacklist == null) {
+                return;
+            }
+
+            for (JsonElement element : blacklist) {
+                if (!element.isJsonPrimitive()
+                        || !element.getAsJsonPrimitive().isString()) {
+                    ItemBlacklistLogs.warn(
+                            CONFIG,
+                            "Ignoring non-string blacklist entry: {}",
+                            element
+                    );
+
+                    continue;
+                }
+
+                parseEntry(
+                        config,
+                        element.getAsString()
+                );
+            }
+        } catch (Exception exception) {
+            ItemBlacklistLogs.warn(
+                    CONFIG,
+                    "Failed to load config: malformed JSONC. Using empty blacklist."
+            );
+        }
+    }
+
+    private static void createDefault(
+            Path configDirectory,
+            Path configPath
+    ) {
+        try {
+            Files.createDirectories(
+                    configDirectory
+            );
+
+            try (BufferedWriter writer =
+                         Files.newBufferedWriter(
+                                 configPath,
+                                 StandardCharsets.UTF_8
+                         )) {
+                writer.write("{");
+                writer.newLine();
+
+                writer.write(
+                        "  \"Detailed Log\": false,"
+                );
+                writer.newLine();
+
+                writer.write(
+                        "  \"Blacklist\": ["
+                );
+                writer.newLine();
+
+                for (String example : COMMENT_EXAMPLES) {
+                    writer.write(example);
+                    writer.newLine();
+                }
+
+                writer.write("  ]");
+                writer.newLine();
+
+                writer.write("}");
+                writer.newLine();
+            }
+
+            ItemBlacklistLogs.info(
+                    CONFIG,
+                    "Created default Item Blacklist config at {}",
+                    configPath
+            );
+        } catch (Exception exception) {
+            ItemBlacklistLogs.error(
+                    CONFIG,
+                    "Failed to write default Item Blacklist config!"
+            );
+        }
+    }
+
     private static void parseEntry(
             BlacklistConfig config,
             String rawEntry
     ) {
-        String entry = rawEntry.trim();
+        String entry =
+                rawEntry.trim();
 
         if (entry.isEmpty()) {
             ItemBlacklistLogs.warn(
                     CONFIG,
                     "Ignoring empty blacklist entry"
             );
+
             return;
         }
 
-        if (entry.startsWith(TAG_PREFIX)) {
-            parseTagEntry(config, entry);
+        boolean tag =
+                entry.startsWith(TAG_PREFIX);
+
+        String rawId = tag
+                ? entry.substring(TAG_PREFIX.length())
+                : entry;
+
+        ResourceLocation id =
+                parseNamespacedId(rawId);
+
+        if (id == null) {
+            ItemBlacklistLogs.warn(
+                    CONFIG,
+                    "Ignoring invalid {} entry: {}",
+                    tag ? "tag" : "item",
+                    entry
+            );
+
+            return;
+        }
+
+        if (tag) {
+            config.blacklistTags.add(id);
         } else {
-            parseItemEntry(config, entry);
+            config.blacklist.add(id);
         }
     }
 
-    private static void parseItemEntry(
-            BlacklistConfig config,
+    private static ResourceLocation parseNamespacedId(
             String entry
     ) {
-        ResourceLocation itemId = parseNamespacedId(entry);
-
-        if (itemId == null) {
-            ItemBlacklistLogs.warn(
-                    CONFIG,
-                    "Ignoring invalid item entry: {}",
-                    entry
-            );
-            return;
-        }
-
-        config.blacklist.add(itemId);
-    }
-
-    private static void parseTagEntry(
-            BlacklistConfig config,
-            String entry
-    ) {
-        String rawTagId = entry.substring(TAG_PREFIX.length());
-        ResourceLocation tagId = parseNamespacedId(rawTagId);
-
-        if (tagId == null) {
-            ItemBlacklistLogs.warn(
-                    CONFIG,
-                    "Ignoring invalid tag entry: {}",
-                    entry
-            );
-            return;
-        }
-
-        config.blacklistTags.add(tagId);
-    }
-
-    private static ResourceLocation parseNamespacedId(String entry) {
         if (!entry.contains(":")) {
             return null;
         }
@@ -211,27 +237,40 @@ public class BlacklistConfig {
         return ResourceLocation.tryParse(entry);
     }
 
-    private static void logLoadedEntries(BlacklistConfig config) {
-        long vanillaSingles = config.blacklist.stream()
-                .filter(id -> id.getNamespace().equals(VANILLA_NAMESPACE))
+    private static void logLoadedEntries(
+            BlacklistConfig config
+    ) {
+        long vanillaItems = config.blacklist.stream()
+                .filter(id ->
+                        id.getNamespace().equals(
+                                VANILLA_NAMESPACE
+                        )
+                )
                 .count();
 
         long vanillaTags = config.blacklistTags.stream()
-                .filter(id -> id.getNamespace().equals(VANILLA_NAMESPACE))
+                .filter(id ->
+                        id.getNamespace().equals(
+                                VANILLA_NAMESPACE
+                        )
+                )
                 .count();
 
-        long moddedSingles = config.blacklist.size() - vanillaSingles;
-        long moddedTags = config.blacklistTags.size() - vanillaTags;
+        long moddedItems =
+                config.blacklist.size() - vanillaItems;
+
+        long moddedTags =
+                config.blacklistTags.size() - vanillaTags;
 
         ItemBlacklistLogs.info(
                 CONFIG,
                 "Loaded blacklist config with {} vanilla {}, {} vanilla {}, {} modded {}, and {} modded {}",
-                vanillaSingles,
-                vanillaSingles == 1 ? "item" : "items",
+                vanillaItems,
+                vanillaItems == 1 ? "item" : "items",
                 vanillaTags,
                 vanillaTags == 1 ? "tag" : "tags",
-                moddedSingles,
-                moddedSingles == 1 ? "item" : "items",
+                moddedItems,
+                moddedItems == 1 ? "item" : "items",
                 moddedTags,
                 moddedTags == 1 ? "tag" : "tags"
         );

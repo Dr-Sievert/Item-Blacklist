@@ -45,8 +45,7 @@ public abstract class RecipeManagerMixin {
             ProfilerFiller profiler,
             CallbackInfo ci
     ) {
-        if (BlacklistManager.getResolvedBlacklist().isEmpty()
-                && BlacklistManager.getBlacklistedTags().isEmpty()) {
+        if (BlacklistManager.isEmpty()) {
             return;
         }
 

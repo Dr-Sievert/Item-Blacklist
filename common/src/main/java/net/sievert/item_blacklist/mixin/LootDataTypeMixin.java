@@ -54,10 +54,8 @@ public abstract class LootDataTypeMixin<T> {
             JsonElement element
     ) {
         if (element.isJsonArray()) {
-            JsonArray array =
-                    element.getAsJsonArray();
-
-            for (JsonElement child : array) {
+            for (JsonElement child :
+                    element.getAsJsonArray()) {
                 item_blacklist$filterElement(
                         lootTable,
                         child
@@ -74,26 +72,25 @@ public abstract class LootDataTypeMixin<T> {
         JsonObject object =
                 element.getAsJsonObject();
 
-        JsonElement entriesElement =
-                object.get("entries");
-
-        if (entriesElement != null
-                && entriesElement.isJsonArray()) {
-            item_blacklist$filterEntries(
-                    lootTable,
-                    entriesElement.getAsJsonArray()
-            );
-        }
-
         for (Map.Entry<String, JsonElement> entry :
                 object.entrySet()) {
-            if ("entries".equals(entry.getKey())) {
+            JsonElement child =
+                    entry.getValue();
+
+            if (("entries".equals(entry.getKey())
+                    || "children".equals(entry.getKey()))
+                    && child.isJsonArray()) {
+                item_blacklist$filterEntries(
+                        lootTable,
+                        child.getAsJsonArray()
+                );
+
                 continue;
             }
 
             item_blacklist$filterElement(
                     lootTable,
-                    entry.getValue()
+                    child
             );
         }
     }

@@ -2,11 +2,22 @@ plugins {
     id 'multiloader-common'
 }
 
+repositories {
+    maven {
+        url = 'https://maven.blamejared.com'
+
+        content {
+            includeGroup 'mezz.jei'
+        }
+    }
+}
+
 configurations {
-    commonJava{
+    commonJava {
         canBeResolved = true
     }
-    commonResources{
+
+    commonResources {
         canBeResolved = true
     }
 }
@@ -17,8 +28,16 @@ dependencies {
             requireCapability "$group:$mod_id"
         }
     }
-    commonJava project(path: ':common', configuration: 'commonJava')
-    commonResources project(path: ':common', configuration: 'commonResources')
+
+    commonJava project(
+            path: ':common',
+            configuration: 'commonJava'
+    )
+
+    commonResources project(
+            path: ':common',
+            configuration: 'commonResources'
+    )
 }
 
 tasks.named('compileJava', JavaCompile) {
@@ -39,6 +58,7 @@ tasks.named('javadoc', Javadoc).configure {
 tasks.named('sourcesJar', Jar) {
     dependsOn(configurations.commonJava)
     from(configurations.commonJava)
+
     dependsOn(configurations.commonResources)
     from(configurations.commonResources)
 }

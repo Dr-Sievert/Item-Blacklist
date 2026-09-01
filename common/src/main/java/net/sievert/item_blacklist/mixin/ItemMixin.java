@@ -10,6 +10,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.List;
 
@@ -32,7 +33,23 @@ public abstract class ItemMixin {
         }
 
         tooltipComponents.add(
-                Component.literal("Disabled by blacklist.").withStyle(ChatFormatting.RED)
+                Component.literal("Disabled by blacklist.")
+                        .withStyle(ChatFormatting.RED)
         );
+    }
+
+    @Inject(
+            method = "isValidRepairItem",
+            at = @At("HEAD"),
+            cancellable = true
+    )
+    private void item_blacklist$preventBlacklistedRepairIngredient(
+            ItemStack stack,
+            ItemStack repairCandidate,
+            CallbackInfoReturnable<Boolean> cir
+    ) {
+        if (BlacklistManager.isBlacklisted(repairCandidate)) {
+            cir.setReturnValue(false);
+        }
     }
 }

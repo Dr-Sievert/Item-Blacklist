@@ -1,26 +1,32 @@
 package net.sievert.item_blacklist.platform;
 
-import net.sievert.item_blacklist.platform.environment.EnvironmentService;
+import net.sievert.item_blacklist.platform.network.NetworkService;
 
 public final class ItemBlacklistServices {
 
-    private static EnvironmentService environment;
+    private static NetworkService network;
 
     private ItemBlacklistServices() {}
 
-    public static void registerEnvironment(EnvironmentService service) {
-        if (environment != null) {
-            throw new IllegalStateException("Environment service is already registered");
+    public static void registerNetwork(
+            NetworkService service
+    ) {
+        if (network != null) {
+            throw new IllegalStateException(
+                    "Network service is already registered"
+            );
         }
 
-        environment = service;
+        network = service;
     }
 
-    public static EnvironmentService environment() {
-        if (environment == null) {
-            throw new IllegalStateException("Environment service has not been registered");
+    public static NetworkService network() {
+        if (network == null) {
+            throw new IllegalStateException(
+                    "Network service has not been registered"
+            );
         }
 
-        return environment;
+        return network;
     }
 }

@@ -1,13 +1,18 @@
 package net.sievert.item_blacklist.blacklist;
 
+import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
 import net.sievert.item_blacklist.ItemBlacklist;
 import net.sievert.item_blacklist.util.ItemBlacklistLogs;
 
+import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -25,6 +30,11 @@ public final class BlacklistManager {
 
     private static final Map<ResourceLocation, Set<ResourceLocation>> RESOLVED_TAG_ITEMS =
             new LinkedHashMap<>();
+
+    private static final Set<ResourceLocation> SYNCED_BLACKLIST =
+            new LinkedHashSet<>();
+
+    private static boolean syncedBlacklistActive;
 
     private BlacklistManager() {}
 
@@ -54,17 +64,19 @@ public final class BlacklistManager {
             Set<ResourceLocation> resolvedItems =
                     new LinkedHashSet<>();
 
-            BuiltInRegistries.ITEM.getTag(tag).ifPresent(items -> {
-                for (var holder : items) {
-                    ResourceLocation itemId =
-                            BuiltInRegistries.ITEM.getKey(
-                                    holder.value()
-                            );
+            BuiltInRegistries.ITEM
+                    .getTag(tag)
+                    .ifPresent(items -> {
+                        for (var holder : items) {
+                            ResourceLocation itemId =
+                                    BuiltInRegistries.ITEM.getKey(
+                                            holder.value()
+                                    );
 
-                    resolvedItems.add(itemId);
-                    RESOLVED_BLACKLIST.add(itemId);
-                }
-            });
+                            resolvedItems.add(itemId);
+                            RESOLVED_BLACKLIST.add(itemId);
+                        }
+                    });
 
             RESOLVED_TAG_ITEMS.put(
                     tagId,
@@ -81,23 +93,94 @@ public final class BlacklistManager {
                         : "items"
         );
 
-        TradeBlacklistManager.filter();
+        BlacklistTradeManager.filter();
     }
 
-    public static boolean isBlacklisted(ItemStack stack) {
-        return isBlacklisted(stack.getItem());
+    public static void setSyncedBlacklist(
+            Collection<ResourceLocation> items
+    ) {
+        SYNCED_BLACKLIST.clear();
+        SYNCED_BLACKLIST.addAll(items);
+        syncedBlacklistActive = true;
     }
 
-    public static boolean isBlacklisted(Item item) {
-        return isBlacklisted(
+    public static void clearSyncedBlacklist() {
+        SYNCED_BLACKLIST.clear();
+        syncedBlacklistActive = false;
+    }
+
+    public static boolean isEmpty() {
+        if (syncedBlacklistActive) {
+            return SYNCED_BLACKLIST.isEmpty();
+        }
+
+        return RESOLVED_BLACKLIST.isEmpty()
+                && BLACKLISTED_TAGS.isEmpty();
+    }
+
+    public static boolean isResolvedBlacklisted(
+            ItemStack stack
+    ) {
+        return isResolvedBlacklisted(
+                stack.getItem()
+        );
+    }
+
+    public static boolean isResolvedBlacklisted(
+            Item item
+    ) {
+        return isResolvedBlacklisted(
                 BuiltInRegistries.ITEM.getKey(item)
         );
+    }
+
+    public static boolean isResolvedBlacklisted(
+            ResourceLocation itemId
+    ) {
+        if (syncedBlacklistActive) {
+            return SYNCED_BLACKLIST.contains(itemId);
+        }
+
+        return RESOLVED_BLACKLIST.contains(itemId);
+    }
+
+    public static boolean isBlacklisted(
+            ItemStack stack
+    ) {
+        return isResolvedBlacklisted(stack);
+    }
+
+    public static boolean isBlacklisted(
+            Item item
+    ) {
+        return isResolvedBlacklisted(item);
     }
 
     public static boolean isBlacklisted(
             ResourceLocation itemId
     ) {
-        return RESOLVED_BLACKLIST.contains(itemId);
+        return isResolvedBlacklisted(itemId);
+    }
+
+    public static boolean isBlacklistedBlock(
+            Level level,
+            BlockPos pos,
+            BlockState state
+    ) {
+        Block block = state.getBlock();
+
+        if (isResolvedBlacklisted(block.asItem())) {
+            return true;
+        }
+
+        ItemStack cloneStack = block.getCloneItemStack(
+                level,
+                pos,
+                state
+        );
+
+        return !cloneStack.isEmpty()
+                && isResolvedBlacklisted(cloneStack);
     }
 
     public static boolean isBlacklistedTag(
@@ -124,10 +207,14 @@ public final class BlacklistManager {
     }
 
     public static Set<ResourceLocation> getResolvedBlacklist() {
-        return Set.copyOf(RESOLVED_BLACKLIST);
+        return Set.copyOf(
+                RESOLVED_BLACKLIST
+        );
     }
 
     public static Set<ResourceLocation> getBlacklistedTags() {
-        return Set.copyOf(BLACKLISTED_TAGS);
+        return Set.copyOf(
+                BLACKLISTED_TAGS
+        );
     }
 }

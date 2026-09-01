@@ -3,6 +3,8 @@ package net.sievert.item_blacklist;
 import net.sievert.item_blacklist.config.BlacklistConfig;
 import net.sievert.item_blacklist.util.ItemBlacklistLogs;
 
+import java.nio.file.Path;
+
 import static net.sievert.item_blacklist.util.ItemBlacklistLogTags.INIT;
 
 public final class ItemBlacklist {
@@ -13,13 +15,12 @@ public final class ItemBlacklist {
 
     private ItemBlacklist() {}
 
-    public static void init() {
-
+    public static void init(Path configDirectory) {
         ItemBlacklistLogs.info(
                 INIT,
                 "Initializing Item Blacklist"
         );
 
-        CONFIG = BlacklistConfig.loadOrCreate();
+        CONFIG = BlacklistConfig.loadOrCreate(configDirectory);
     }
 }

@@ -33,11 +33,13 @@ public abstract class InventoryMixin {
             ItemStack stack,
             CallbackInfoReturnable<Boolean> cir
     ) {
-        if (this.player.isCreative() || !BlacklistManager.isBlacklisted(stack)) {
+        if (this.player.level().isClientSide
+                || this.player.isCreative()
+                || !BlacklistManager.isBlacklisted(stack)) {
             return;
         }
 
-        player.displayClientMessage(
+        this.player.displayClientMessage(
                 Component.empty()
                         .append(stack.getHoverName())
                         .append(" is disabled by blacklist.")
