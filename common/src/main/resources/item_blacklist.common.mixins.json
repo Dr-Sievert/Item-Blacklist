@@ -1,0 +1,19 @@
+{
+  "required": true,
+  "package": "net.sievert.item_blacklist.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "mixins": [
+    "BlockStateBaseMixin",
+    "InventoryMixin",
+    "ItemMixin",
+    "ItemStackMixin",
+    "LootDataTypeMixin",
+    "MappedRegistryMixin",
+    "MinecraftServerMixin",
+    "RecipeManagerMixin",
+    "VillagerTradesAccessor"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

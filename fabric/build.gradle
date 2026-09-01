@@ -3,6 +3,19 @@ plugins {
     id 'fabric-loom'
 }
 
+repositories {
+    maven {
+        url = 'https://maven.fabricmc.net'
+    }
+
+    maven {
+        url = 'https://maven.blamejared.com'
+        content {
+            includeGroup 'mezz.jei'
+        }
+    }
+}
+
 dependencies {
     minecraft "com.mojang:minecraft:${minecraft_version}"
 
@@ -12,32 +25,31 @@ dependencies {
     }
 
     modImplementation "net.fabricmc:fabric-loader:${fabric_loader_version}"
+    modImplementation "net.fabricmc.fabric-api:fabric-api:${fabric_api_version}"
+
+    modLocalRuntime "mezz.jei:jei-${minecraft_version}-fabric:${jei_version}"
 }
 
 loom {
     def aw = project(':common').file("src/main/resources/${mod_id}.accesswidener")
-
     if (aw.exists()) {
         accessWidenerPath.set(aw)
     }
-
     mixin {
         defaultRefmapName.set("${mod_id}.refmap.json")
     }
-
     runs {
         client {
             client()
             setConfigName('Fabric Client')
             ideConfigGenerated(true)
-            runDir('run')
+            runDir('runs/client')
         }
-
         server {
             server()
             setConfigName('Fabric Server')
             ideConfigGenerated(true)
-            runDir('run')
+            runDir('runs/server')
         }
     }
 }

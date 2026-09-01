@@ -11,7 +11,7 @@
         "sources": "https://github.com/Dr-Sievert/Item-Blacklist"
     },
     "license": "${license}",
-    "icon": "${mod_id}.png",
+    "icon": "item_blacklist.png",
     "environment": "*",
     "entrypoints": {
         "main": [
@@ -20,7 +20,12 @@
     },
     "depends": {
         "fabricloader": ">=${fabric_loader_version}",
+        "fabric-api": "*",
         "minecraft": "${minecraft_version}",
         "java": ">=${java_version}"
-    }
+    },
+    "mixins": [
+        "item_blacklist.common.mixins.json",
+        "item_blacklist.fabric.mixins.json"
+    ]
 }

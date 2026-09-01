@@ -11,6 +11,10 @@ public final class ItemBlacklistLogs {
     private static final String LOGGER_NAME = ItemBlacklist.MOD_ID.toUpperCase();
     private static final Logger LOGGER = LoggerFactory.getLogger(LOGGER_NAME);
 
+    private static final String ANSI_YELLOW = "\u001B[33m";
+    private static final String ANSI_RED = "\u001B[31m";
+    private static final String ANSI_RESET = "\u001B[0m";
+
     /* ---------------------------------------------------------------------
      * Debug
      * ------------------------------------------------------------------ */
@@ -61,8 +65,14 @@ public final class ItemBlacklistLogs {
         switch (level) {
             case DEBUG -> LOGGER.debug(prefixed, args);
             case INFO -> LOGGER.info(prefixed, args);
-            case WARN -> LOGGER.warn(prefixed, args);
-            case ERROR -> LOGGER.error(prefixed, args);
+            case WARN -> LOGGER.warn(
+                    ANSI_YELLOW + prefixed + ANSI_RESET,
+                    args
+            );
+            case ERROR -> LOGGER.error(
+                    ANSI_RED + prefixed + ANSI_RESET,
+                    args
+            );
         }
     }
 
