@@ -82,7 +82,10 @@ public abstract class BlockStateBaseMixin {
             );
 
             player.displayClientMessage(
-                    Component.literal("Disabled by blacklist.").withStyle(ChatFormatting.RED),
+                    Component.empty()
+                            .append(this.getBlock().getName())
+                            .append(" is disabled by blacklist.")
+                            .withStyle(ChatFormatting.RED),
                     true
             );
 

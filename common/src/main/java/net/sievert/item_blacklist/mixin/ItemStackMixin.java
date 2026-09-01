@@ -40,7 +40,10 @@ public abstract class ItemStackMixin {
         }
 
         player.displayClientMessage(
-                Component.literal("Disabled by blacklist.").withStyle(ChatFormatting.RED),
+                Component.empty()
+                        .append(stack.getHoverName())
+                        .append(" is disabled by blacklist.")
+                        .withStyle(ChatFormatting.RED),
                 true
         );
 

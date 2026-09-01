@@ -37,8 +37,11 @@ public abstract class InventoryMixin {
             return;
         }
 
-        this.player.displayClientMessage(
-                Component.literal("Disabled by blacklist.").withStyle(ChatFormatting.RED),
+        player.displayClientMessage(
+                Component.empty()
+                        .append(stack.getHoverName())
+                        .append(" is disabled by blacklist.")
+                        .withStyle(ChatFormatting.RED),
                 true
         );
 
