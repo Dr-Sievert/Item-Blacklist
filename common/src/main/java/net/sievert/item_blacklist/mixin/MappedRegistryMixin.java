@@ -24,8 +24,10 @@ import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
@@ -67,6 +69,41 @@ public abstract class MappedRegistryMixin<T> {
     private Map<TagKey<T>, List<Holder<T>>> item_blacklist$filterItemTags(
             Map<TagKey<T>, List<Holder<T>>> tags
     ) {
+        Map<ResourceLocation, Set<ResourceLocation>> resolvedTagItems =
+                new LinkedHashMap<>();
+
+        for (Map.Entry<TagKey<T>, List<Holder<T>>> entry :
+                tags.entrySet()) {
+            ResourceLocation tagId =
+                    entry.getKey().location();
+
+            if (!BlacklistManager.isBlacklistedTag(tagId)) {
+                continue;
+            }
+
+            Set<ResourceLocation> items =
+                    new LinkedHashSet<>();
+
+            for (Holder<T> holder : entry.getValue()) {
+                if (!(holder.value() instanceof Item item)) {
+                    continue;
+                }
+
+                items.add(
+                        BuiltInRegistries.ITEM.getKey(item)
+                );
+            }
+
+            resolvedTagItems.put(
+                    tagId,
+                    items
+            );
+        }
+
+        BlacklistManager.replaceResolvedTagItems(
+                resolvedTagItems
+        );
+
         return item_blacklist$filterTags(
                 tags,
                 true,
@@ -94,7 +131,8 @@ public abstract class MappedRegistryMixin<T> {
                         return null;
                     }
 
-                    Item item = block.asItem();
+                    Item item =
+                            block.asItem();
 
                     if (item == Items.AIR
                             || !BlacklistManager.isBlacklisted(item)) {
@@ -111,6 +149,51 @@ public abstract class MappedRegistryMixin<T> {
     private Map<TagKey<T>, List<Holder<T>>> item_blacklist$filterEnchantmentTags(
             Map<TagKey<T>, List<Holder<T>>> tags
     ) {
+        Set<ResourceLocation> resolvedFromBlacklistedTags =
+                new LinkedHashSet<>();
+
+        /*
+         * First collect every member of every configured blacklisted
+         * enchantment tag from the unmodified incoming tag data.
+         */
+        for (Map.Entry<TagKey<T>, List<Holder<T>>> entry :
+                tags.entrySet()) {
+            ResourceLocation tagId =
+                    entry.getKey().location();
+
+            if (!BlacklistManager.isBlacklistedEnchantmentTag(
+                    tagId
+            )) {
+                continue;
+            }
+
+            for (Holder<T> holder : entry.getValue()) {
+                ResourceLocation enchantmentId =
+                        item_blacklist$getEnchantmentId(
+                                holder
+                        );
+
+                if (enchantmentId != null) {
+                    resolvedFromBlacklistedTags.add(
+                            enchantmentId
+                    );
+                }
+            }
+        }
+
+        /*
+         * Only the logical server's registry is allowed to replace the
+         * authoritative resolved set. Integrated clients bind their own
+         * synchronized enchantment registry in the same JVM.
+         */
+        if (BlacklistManager.isAuthoritativeEnchantmentRegistry(
+                (Registry<?>) (Object) this
+        )) {
+            BlacklistManager.replaceResolvedEnchantments(
+                    resolvedFromBlacklistedTags
+            );
+        }
+
         Map<TagKey<T>, List<Holder<T>>> filtered =
                 new LinkedHashMap<>(tags.size());
 
@@ -120,20 +203,22 @@ public abstract class MappedRegistryMixin<T> {
                     entry.getKey().location();
 
             List<Holder<T>> values =
-                    new ArrayList<>(entry.getValue());
+                    new ArrayList<>(
+                            entry.getValue()
+                    );
 
-            if (BlacklistManager.isBlacklistedEnchantmentTag(tagId)) {
+            if (BlacklistManager.isBlacklistedEnchantmentTag(
+                    tagId
+            )) {
                 for (Holder<T> holder : values) {
                     ResourceLocation enchantmentId =
-                            item_blacklist$getEnchantmentId(holder);
+                            item_blacklist$getEnchantmentId(
+                                    holder
+                            );
 
                     if (enchantmentId == null) {
                         continue;
                     }
-
-                    BlacklistManager.addResolvedEnchantment(
-                            enchantmentId
-                    );
 
                     BlacklistLogReport.recordEnchantmentTagRemoval(
                             enchantmentId,
@@ -157,7 +242,9 @@ public abstract class MappedRegistryMixin<T> {
                         iterator.next();
 
                 ResourceLocation enchantmentId =
-                        item_blacklist$getEnchantmentId(holder);
+                        item_blacklist$getEnchantmentId(
+                                holder
+                        );
 
                 if (enchantmentId == null
                         || !BlacklistManager.isBlacklistedEnchantment(
@@ -204,7 +291,9 @@ public abstract class MappedRegistryMixin<T> {
             BiConsumer<ResourceLocation, ResourceLocation> removalRecorder
     ) {
         Map<TagKey<T>, List<Holder<T>>> filtered =
-                new LinkedHashMap<>(tags.size());
+                new LinkedHashMap<>(
+                        tags.size()
+                );
 
         for (Map.Entry<TagKey<T>, List<Holder<T>>> entry :
                 tags.entrySet()) {
@@ -212,7 +301,9 @@ public abstract class MappedRegistryMixin<T> {
                     entry.getKey().location();
 
             if (clearBlacklistedTags
-                    && BlacklistManager.isBlacklistedTag(tagId)) {
+                    && BlacklistManager.isBlacklistedTag(
+                    tagId
+            )) {
                 BlacklistLogReport.recordBlacklistedTag(
                         tagId
                 );
@@ -226,7 +317,9 @@ public abstract class MappedRegistryMixin<T> {
             }
 
             List<Holder<T>> values =
-                    new ArrayList<>(entry.getValue());
+                    new ArrayList<>(
+                            entry.getValue()
+                    );
 
             Iterator<Holder<T>> iterator =
                     values.iterator();
@@ -236,7 +329,9 @@ public abstract class MappedRegistryMixin<T> {
                         iterator.next();
 
                 ResourceLocation blacklistedId =
-                        blacklistedEntryResolver.apply(holder);
+                        blacklistedEntryResolver.apply(
+                                holder
+                        );
 
                 if (blacklistedId == null) {
                     continue;

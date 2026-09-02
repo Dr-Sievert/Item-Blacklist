@@ -21,7 +21,7 @@
             "net.sievert.item_blacklist.fabric.client.ItemBlacklistFabricClient"
         ],
         "jei_mod_plugin": [
-            "net.sievert.item_blacklist.integration.ItemBlacklistJeiPlugin"
+          "net.sievert.item_blacklist.integration.jei.ItemBlacklistJeiPlugin"
         ]
     },
     "depends": {

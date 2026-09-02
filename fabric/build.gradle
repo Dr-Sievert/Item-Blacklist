@@ -7,6 +7,13 @@ repositories {
     maven {
         url = 'https://maven.fabricmc.net'
     }
+
+    maven {
+        url = 'https://www.cursemaven.com'
+        content {
+            includeGroup 'curse.maven'
+        }
+    }
 }
 
 dependencies {
@@ -24,6 +31,9 @@ dependencies {
 
     compileOnly "mezz.jei:jei-${minecraft_version}-common-api:${jei_version}"
     modLocalRuntime "mezz.jei:jei-${minecraft_version}-fabric:${jei_version}"
+
+    modCompileOnly "curse.maven:just-enough-resources-jer-240630:${jer_fabric_file}"
+    modLocalRuntime "curse.maven:just-enough-resources-jer-240630:${jer_fabric_file}"
 }
 
 loom {

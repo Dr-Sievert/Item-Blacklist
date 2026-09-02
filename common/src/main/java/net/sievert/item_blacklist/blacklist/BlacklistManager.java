@@ -48,9 +48,6 @@ public final class BlacklistManager {
     private static final Map<ResourceLocation, Set<ResourceLocation>> RESOLVED_TAG_ITEMS =
             new LinkedHashMap<>();
 
-    private static final Map<ResourceLocation, Set<ResourceLocation>> RESOLVED_ENCHANTMENT_TAG_ENTRIES =
-            new LinkedHashMap<>();
-
     private static final Set<ResourceLocation> SYNCED_BLACKLIST =
             new LinkedHashSet<>();
 
@@ -60,11 +57,36 @@ public final class BlacklistManager {
     private static final Set<ResourceLocation> SYNCED_ENCHANTMENTS =
             new LinkedHashSet<>();
 
+    private static Registry<Enchantment> authoritativeEnchantmentRegistry;
+
+    private static boolean remoteClient;
     private static boolean syncedBlacklistActive;
 
     private BlacklistManager() {}
 
     public static void resolve(
+            RegistryAccess registryAccess
+    ) {
+        rebuildResolvedState(
+                registryAccess
+        );
+
+        RESOLVED_ENCHANTMENTS.forEach(
+                BlacklistLogReport::recordBlacklistedEnchantment
+        );
+
+        ItemBlacklistLogs.info(
+                CONFIG,
+                "Resolved blacklist to {} unique items, {} potions, and {} enchantments",
+                RESOLVED_BLACKLIST.size(),
+                BLACKLISTED_POTIONS.size(),
+                RESOLVED_ENCHANTMENTS.size()
+        );
+
+        BlacklistTradeManager.filter();
+    }
+
+    private static void rebuildResolvedState(
             RegistryAccess registryAccess
     ) {
         RESOLVED_BLACKLIST.clear();
@@ -73,7 +95,6 @@ public final class BlacklistManager {
         RESOLVED_ENCHANTMENTS.clear();
         BLACKLISTED_ENCHANTMENT_TAGS.clear();
         RESOLVED_TAG_ITEMS.clear();
-        RESOLVED_ENCHANTMENT_TAG_ENTRIES.clear();
 
         if (ItemBlacklist.CONFIG == null) {
             return;
@@ -133,54 +154,38 @@ public final class BlacklistManager {
                         Registries.ENCHANTMENT
                 );
 
+        authoritativeEnchantmentRegistry =
+                enchantmentRegistry;
+
         for (ResourceLocation tagId : BLACKLISTED_ENCHANTMENT_TAGS) {
             TagKey<Enchantment> tag = TagKey.create(
                     Registries.ENCHANTMENT,
                     tagId
             );
 
-            Set<ResourceLocation> resolvedEnchantments =
-                    new LinkedHashSet<>();
-
             enchantmentRegistry
                     .getTag(tag)
                     .ifPresent(enchantments -> {
                         for (Holder<Enchantment> holder : enchantments) {
                             holder.unwrapKey()
-                                    .ifPresent(key -> {
-                                        ResourceLocation enchantmentId =
-                                                key.location();
-
-                                        resolvedEnchantments.add(
-                                                enchantmentId
-                                        );
-
-                                        RESOLVED_ENCHANTMENTS.add(
-                                                enchantmentId
-                                        );
-                                    });
+                                    .ifPresent(key ->
+                                            RESOLVED_ENCHANTMENTS.add(
+                                                    key.location()
+                                            )
+                                    );
                         }
                     });
-
-            RESOLVED_ENCHANTMENT_TAG_ENTRIES.put(
-                    tagId,
-                    Set.copyOf(resolvedEnchantments)
-            );
         }
+    }
 
-        RESOLVED_ENCHANTMENTS.forEach(
-                BlacklistLogReport::recordBlacklistedEnchantment
-        );
+    public static void setRemoteClient(
+            boolean remote
+    ) {
+        remoteClient = remote;
 
-        ItemBlacklistLogs.info(
-                CONFIG,
-                "Resolved blacklist to {} unique items, {} potions, and {} enchantments",
-                RESOLVED_BLACKLIST.size(),
-                BLACKLISTED_POTIONS.size(),
-                RESOLVED_ENCHANTMENTS.size()
-        );
-
-        BlacklistTradeManager.filter();
+        if (!remote) {
+            clearSyncedBlacklist();
+        }
     }
 
     public static void setSyncedBlacklist(
@@ -198,6 +203,8 @@ public final class BlacklistManager {
         SYNCED_ENCHANTMENTS.addAll(enchantments);
 
         syncedBlacklistActive = true;
+
+        BlacklistTradeManager.filter();
     }
 
     public static void clearSyncedBlacklist() {
@@ -206,13 +213,16 @@ public final class BlacklistManager {
         SYNCED_ENCHANTMENTS.clear();
 
         syncedBlacklistActive = false;
+
+        BlacklistTradeManager.filter();
     }
 
     public static boolean isEmpty() {
-        if (syncedBlacklistActive) {
-            return SYNCED_BLACKLIST.isEmpty()
+        if (remoteClient) {
+            return !syncedBlacklistActive
+                    || (SYNCED_BLACKLIST.isEmpty()
                     && SYNCED_POTIONS.isEmpty()
-                    && SYNCED_ENCHANTMENTS.isEmpty();
+                    && SYNCED_ENCHANTMENTS.isEmpty());
         }
 
         return RESOLVED_BLACKLIST.isEmpty()
@@ -264,8 +274,9 @@ public final class BlacklistManager {
     public static boolean isBlacklisted(
             ResourceLocation itemId
     ) {
-        if (syncedBlacklistActive) {
-            return SYNCED_BLACKLIST.contains(itemId);
+        if (remoteClient) {
+            return syncedBlacklistActive
+                    && SYNCED_BLACKLIST.contains(itemId);
         }
 
         return RESOLVED_BLACKLIST.contains(itemId);
@@ -274,8 +285,9 @@ public final class BlacklistManager {
     public static boolean isBlacklistedPotion(
             ResourceLocation potionId
     ) {
-        if (syncedBlacklistActive) {
-            return SYNCED_POTIONS.contains(potionId);
+        if (remoteClient) {
+            return syncedBlacklistActive
+                    && SYNCED_POTIONS.contains(potionId);
         }
 
         return BLACKLISTED_POTIONS.contains(potionId);
@@ -320,8 +332,9 @@ public final class BlacklistManager {
     public static boolean isBlacklistedEnchantment(
             ResourceLocation enchantmentId
     ) {
-        if (syncedBlacklistActive) {
-            return SYNCED_ENCHANTMENTS.contains(
+        if (remoteClient) {
+            return syncedBlacklistActive
+                    && SYNCED_ENCHANTMENTS.contains(
                     enchantmentId
             );
         }
@@ -370,82 +383,126 @@ public final class BlacklistManager {
     public static boolean isBlacklistedTag(
             ResourceLocation tagId
     ) {
-        return BLACKLISTED_TAGS.contains(tagId);
-    }
-
-    public static boolean isBlacklistedTag(
-            TagKey<?> tag
-    ) {
-        return isBlacklistedTag(
-                tag.location()
-        );
+        return !remoteClient
+                && BLACKLISTED_TAGS.contains(tagId);
     }
 
     public static boolean isBlacklistedEnchantmentTag(
             ResourceLocation tagId
     ) {
-        return BLACKLISTED_ENCHANTMENT_TAGS.contains(tagId);
+        return !remoteClient
+                && BLACKLISTED_ENCHANTMENT_TAGS.contains(tagId);
     }
 
-    public static void addResolvedEnchantment(
-            ResourceLocation enchantmentId
+    public static void replaceResolvedTagItems(
+            Map<ResourceLocation, Set<ResourceLocation>> resolvedTagItems
     ) {
-        RESOLVED_ENCHANTMENTS.add(enchantmentId);
+        RESOLVED_TAG_ITEMS.clear();
+        RESOLVED_BLACKLIST.clear();
+
+        if (ItemBlacklist.CONFIG != null) {
+            RESOLVED_BLACKLIST.addAll(
+                    ItemBlacklist.CONFIG.blacklistItems
+            );
+        }
+
+        for (Map.Entry<ResourceLocation, Set<ResourceLocation>> entry :
+                resolvedTagItems.entrySet()) {
+            Set<ResourceLocation> items =
+                    Set.copyOf(entry.getValue());
+
+            RESOLVED_TAG_ITEMS.put(
+                    entry.getKey(),
+                    items
+            );
+
+            RESOLVED_BLACKLIST.addAll(items);
+        }
+
+        BlacklistTradeManager.filter();
     }
 
-    public static boolean isBlacklistedEnchantmentTag(
-            TagKey<Enchantment> tag
+    public static boolean isAuthoritativeEnchantmentRegistry(
+            Registry<?> registry
     ) {
-        return isBlacklistedEnchantmentTag(
-                tag.location()
+        return registry == authoritativeEnchantmentRegistry;
+    }
+
+    public static void replaceResolvedEnchantments(
+            Collection<ResourceLocation> resolvedFromTags
+    ) {
+        RESOLVED_ENCHANTMENTS.clear();
+
+        if (ItemBlacklist.CONFIG != null) {
+            RESOLVED_ENCHANTMENTS.addAll(
+                    ItemBlacklist.CONFIG.blacklistEnchantments
+            );
+        }
+
+        RESOLVED_ENCHANTMENTS.addAll(
+                resolvedFromTags
         );
+
+        BlacklistTradeManager.filter();
     }
 
     public static Set<ResourceLocation> getResolvedTagItems(
             ResourceLocation tagId
     ) {
+        if (remoteClient) {
+            return Set.of();
+        }
+
         return RESOLVED_TAG_ITEMS.getOrDefault(
                 tagId,
                 Set.of()
         );
     }
 
-    public static Set<ResourceLocation> getResolvedEnchantmentTagEntries(
-            ResourceLocation tagId
-    ) {
-        return RESOLVED_ENCHANTMENT_TAG_ENTRIES.getOrDefault(
-                tagId,
-                Set.of()
-        );
-    }
-
     public static Set<ResourceLocation> getResolvedBlacklist() {
+        if (remoteClient) {
+            return syncedBlacklistActive
+                    ? Set.copyOf(SYNCED_BLACKLIST)
+                    : Set.of();
+        }
+
         return Set.copyOf(
                 RESOLVED_BLACKLIST
         );
     }
 
     public static Set<ResourceLocation> getBlacklistedTags() {
+        if (remoteClient) {
+            return Set.of();
+        }
+
         return Set.copyOf(
                 BLACKLISTED_TAGS
         );
     }
 
     public static Set<ResourceLocation> getBlacklistedPotions() {
+        if (remoteClient) {
+            return syncedBlacklistActive
+                    ? Set.copyOf(SYNCED_POTIONS)
+                    : Set.of();
+        }
+
         return Set.copyOf(
                 BLACKLISTED_POTIONS
         );
     }
 
     public static Set<ResourceLocation> getBlacklistedEnchantments() {
+        if (remoteClient) {
+            return syncedBlacklistActive
+                    ? Set.copyOf(SYNCED_ENCHANTMENTS)
+                    : Set.of();
+        }
+
         return Set.copyOf(
                 RESOLVED_ENCHANTMENTS
         );
     }
 
-    public static Set<ResourceLocation> getBlacklistedEnchantmentTags() {
-        return Set.copyOf(
-                BLACKLISTED_ENCHANTMENT_TAGS
-        );
-    }
 }

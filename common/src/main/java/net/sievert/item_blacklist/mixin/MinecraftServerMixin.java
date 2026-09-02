@@ -70,4 +70,5 @@ public abstract class MinecraftServerMixin {
                 BlacklistLogReport::flush
         );
     }
+
 }

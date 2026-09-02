@@ -1,4 +1,4 @@
-package net.sievert.item_blacklist.neoforge.brew;
+package net.sievert.item_blacklist.neoforge.blacklist;
 
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.world.item.ItemStack;

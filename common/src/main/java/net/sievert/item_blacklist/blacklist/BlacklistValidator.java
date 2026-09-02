@@ -86,10 +86,6 @@ public final class BlacklistValidator {
                 "enchantment",
                 true
         );
-
-        config.blacklistEnchantments.forEach(
-                BlacklistLogReport::recordBlacklistedEnchantment
-        );
     }
 
     private static void validate(

@@ -165,7 +165,7 @@ public final class BlacklistLogReport {
                 ITEMS,
                 item
         ).brewingRecipes.add(
-                item + " (" + role + ")"
+                recipe + " [" + role + ": " + item + "]"
         );
 
         REMOVED_BREWING_RECIPES.add(recipe);
@@ -180,7 +180,7 @@ public final class BlacklistLogReport {
                 TAGS,
                 tag
         ).brewingRecipes.add(
-                "#" + tag + " (" + role + ")"
+                recipe + " [" + role + ": #" + tag + "]"
         );
 
         REMOVED_BREWING_RECIPES.add(recipe);
@@ -195,35 +195,7 @@ public final class BlacklistLogReport {
                 POTIONS,
                 potion
         ).brewingRecipes.add(
-                potion + " (" + role + ")"
-        );
-
-        REMOVED_BREWING_RECIPES.add(recipe);
-    }
-
-    public static synchronized void recordBrewingRecipeTagRemoval(
-            ResourceLocation tag,
-            String recipe
-    ) {
-        report(
-                TAGS,
-                tag
-        ).brewingRecipes.add(
-                "#" + tag + " (ingredient)"
-        );
-
-        REMOVED_BREWING_RECIPES.add(recipe);
-    }
-
-    public static synchronized void recordBrewingRecipePotionRemoval(
-            ResourceLocation potion,
-            String recipe
-    ) {
-        report(
-                POTIONS,
-                potion
-        ).brewingRecipes.add(
-                potion + " (ingredient)"
+                recipe + " [" + role + ": " + potion + "]"
         );
 
         REMOVED_BREWING_RECIPES.add(recipe);

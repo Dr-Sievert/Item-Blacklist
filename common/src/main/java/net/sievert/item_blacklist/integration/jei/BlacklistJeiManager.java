@@ -1,4 +1,4 @@
-package net.sievert.item_blacklist.integration;
+package net.sievert.item_blacklist.integration.jei;
 
 import mezz.jei.api.constants.RecipeTypes;
 import mezz.jei.api.recipe.IRecipeManager;

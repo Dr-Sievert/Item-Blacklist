@@ -1,11 +1,10 @@
 package net.sievert.item_blacklist.neoforge;
 
-import net.minecraft.server.level.ServerPlayer;
 import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.loading.FMLPaths;
 import net.neoforged.neoforge.common.NeoForge;
-import net.neoforged.neoforge.event.entity.player.PlayerEvent;
+import net.neoforged.neoforge.event.OnDatapackSyncEvent;
 import net.neoforged.neoforge.event.tick.ServerTickEvent;
 import net.neoforged.neoforge.network.PacketDistributor;
 import net.neoforged.neoforge.network.event.RegisterPayloadHandlersEvent;
@@ -13,8 +12,9 @@ import net.neoforged.neoforge.network.registration.PayloadRegistrar;
 import net.sievert.item_blacklist.ItemBlacklist;
 import net.sievert.item_blacklist.blacklist.BlacklistBrewingManager;
 import net.sievert.item_blacklist.blacklist.BlacklistManager;
-import net.sievert.item_blacklist.integration.BlacklistJeiManager;
-import net.sievert.item_blacklist.neoforge.brew.NeoForgeBrewingFilter;
+import net.sievert.item_blacklist.integration.jei.BlacklistJeiManager;
+import net.sievert.item_blacklist.neoforge.blacklist.NeoForgeBrewingFilter;
+import net.sievert.item_blacklist.neoforge.blacklist.NeoForgeDataMapFilter;
 import net.sievert.item_blacklist.network.BlacklistSyncPayload;
 
 import java.util.List;
@@ -40,7 +40,11 @@ public final class ItemBlacklistNeoForge {
         );
 
         NeoForge.EVENT_BUS.addListener(
-                this::onPlayerLoggedIn
+                this::onDatapackSync
+        );
+
+        NeoForge.EVENT_BUS.addListener(
+                NeoForgeDataMapFilter::onDataMapsUpdated
         );
     }
 
@@ -85,15 +89,10 @@ public final class ItemBlacklistNeoForge {
         );
     }
 
-    private void onPlayerLoggedIn(
-            PlayerEvent.PlayerLoggedInEvent event
+    private void onDatapackSync(
+            OnDatapackSyncEvent event
     ) {
-        if (!(event.getEntity() instanceof ServerPlayer player)) {
-            return;
-        }
-
-        PacketDistributor.sendToPlayer(
-                player,
+        BlacklistSyncPayload payload =
                 new BlacklistSyncPayload(
                         List.copyOf(
                                 BlacklistManager.getResolvedBlacklist()
@@ -104,7 +103,14 @@ public final class ItemBlacklistNeoForge {
                         List.copyOf(
                                 BlacklistManager.getBlacklistedEnchantments()
                         )
-                )
-        );
+                );
+
+        event.getRelevantPlayers()
+                .forEach(player ->
+                        PacketDistributor.sendToPlayer(
+                                player,
+                                payload
+                        )
+                );
     }
 }

@@ -3,9 +3,21 @@ plugins {
     id 'net.neoforged.moddev'
 }
 
+repositories {
+    maven {
+        url = 'https://www.cursemaven.com'
+        content {
+            includeGroup 'curse.maven'
+        }
+    }
+}
+
 dependencies {
     compileOnly "mezz.jei:jei-${minecraft_version}-common-api:${jei_version}"
     runtimeOnly "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
+
+    compileOnly "curse.maven:just-enough-resources-jer-240630:${jer_neoforge_file}"
+    runtimeOnly "curse.maven:just-enough-resources-jer-240630:${jer_neoforge_file}"
 }
 
 neoForge {

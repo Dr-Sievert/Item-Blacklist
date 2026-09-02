@@ -14,12 +14,21 @@ repositories {
     maven {
         url = 'https://repo.spongepowered.org/repository/maven-public/'
     }
+
+    maven {
+        url = 'https://www.cursemaven.com'
+        content {
+            includeGroup 'curse.maven'
+        }
+    }
 }
 
 dependencies {
     compileOnly 'org.spongepowered:mixin:0.8.7'
 
     compileOnly "mezz.jei:jei-${minecraft_version}-common-api:${jei_version}"
+
+    compileOnly "curse.maven:just-enough-resources-jer-240630:${jer_neoforge_file}"
 }
 
 neoForge {

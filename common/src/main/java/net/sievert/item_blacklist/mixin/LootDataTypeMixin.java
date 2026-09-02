@@ -18,6 +18,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -54,8 +56,7 @@ public abstract class LootDataTypeMixin<T> {
             JsonElement element
     ) {
         if (element.isJsonArray()) {
-            for (JsonElement child :
-                    element.getAsJsonArray()) {
+            for (JsonElement child : element.getAsJsonArray()) {
                 item_blacklist$filterElement(
                         lootTable,
                         child
@@ -73,7 +74,7 @@ public abstract class LootDataTypeMixin<T> {
                 element.getAsJsonObject();
 
         for (Map.Entry<String, JsonElement> entry :
-                object.entrySet()) {
+                new ArrayList<>(object.entrySet())) {
             JsonElement child =
                     entry.getValue();
 
@@ -81,6 +82,16 @@ public abstract class LootDataTypeMixin<T> {
                     || "children".equals(entry.getKey()))
                     && child.isJsonArray()) {
                 item_blacklist$filterEntries(
+                        lootTable,
+                        child.getAsJsonArray()
+                );
+
+                continue;
+            }
+
+            if ("functions".equals(entry.getKey())
+                    && child.isJsonArray()) {
+                item_blacklist$filterFunctions(
                         lootTable,
                         child.getAsJsonArray()
                 );
@@ -100,8 +111,8 @@ public abstract class LootDataTypeMixin<T> {
             ResourceLocation lootTable,
             JsonArray entries
     ) {
-        JsonArray filtered =
-                new JsonArray();
+        List<JsonElement> filtered =
+                new ArrayList<>();
 
         for (JsonElement element : entries) {
             if (!element.isJsonObject()) {
@@ -144,6 +155,10 @@ public abstract class LootDataTypeMixin<T> {
                 continue;
             }
 
+            if (item_blacklist$hasOwnBlacklistedPotionFunction(entry)) {
+                continue;
+            }
+
             item_blacklist$filterElement(
                     lootTable,
                     entry
@@ -173,6 +188,175 @@ public abstract class LootDataTypeMixin<T> {
     }
 
     @Unique
+    private static void item_blacklist$filterFunctions(
+            ResourceLocation lootTable,
+            JsonArray functions
+    ) {
+        List<JsonElement> filtered =
+                new ArrayList<>();
+
+        for (JsonElement element : functions) {
+            if (!element.isJsonObject()) {
+                filtered.add(element);
+                continue;
+            }
+
+            JsonObject function =
+                    element.getAsJsonObject();
+
+            if (item_blacklist$isBlacklistedPotionFunction(function)) {
+                continue;
+            }
+
+            if (item_blacklist$isFunction(
+                    function,
+                    "minecraft:set_enchantments"
+            )) {
+                item_blacklist$filterSetEnchantments(
+                        function
+                );
+
+                JsonElement enchantments =
+                        function.get("enchantments");
+
+                if (enchantments != null
+                        && enchantments.isJsonObject()
+                        && enchantments.getAsJsonObject().isEmpty()) {
+                    continue;
+                }
+            }
+
+            item_blacklist$filterElement(
+                    lootTable,
+                    function
+            );
+
+            filtered.add(function);
+        }
+
+        functions.asList().clear();
+
+        for (JsonElement element : filtered) {
+            functions.add(element);
+        }
+    }
+
+    @Unique
+    private static void item_blacklist$filterSetEnchantments(
+            JsonObject function
+    ) {
+        JsonElement enchantmentsElement =
+                function.get("enchantments");
+
+        if (enchantmentsElement == null
+                || !enchantmentsElement.isJsonObject()) {
+            return;
+        }
+
+        JsonObject enchantments =
+                enchantmentsElement.getAsJsonObject();
+
+        List<String> removals =
+                new ArrayList<>();
+
+        for (Map.Entry<String, JsonElement> entry :
+                enchantments.entrySet()) {
+            ResourceLocation enchantmentId =
+                    ResourceLocation.tryParse(
+                            entry.getKey()
+                    );
+
+            if (enchantmentId != null
+                    && BlacklistManager.isBlacklistedEnchantment(
+                    enchantmentId
+            )) {
+                removals.add(
+                        entry.getKey()
+                );
+            }
+        }
+
+        for (String key : removals) {
+            enchantments.remove(key);
+        }
+    }
+
+    @Unique
+    private static boolean item_blacklist$hasOwnBlacklistedPotionFunction(
+            JsonObject entry
+    ) {
+        JsonElement functionsElement =
+                entry.get("functions");
+
+        if (functionsElement == null
+                || !functionsElement.isJsonArray()) {
+            return false;
+        }
+
+        for (JsonElement element :
+                functionsElement.getAsJsonArray()) {
+            if (element.isJsonObject()
+                    && item_blacklist$isBlacklistedPotionFunction(
+                    element.getAsJsonObject()
+            )) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    @Unique
+    private static boolean item_blacklist$isBlacklistedPotionFunction(
+            JsonObject function
+    ) {
+        if (!item_blacklist$isFunction(
+                function,
+                "minecraft:set_potion"
+        )) {
+            return false;
+        }
+
+        ResourceLocation potionId =
+                item_blacklist$getResourceLocation(
+                        function,
+                        "id"
+                );
+
+        if (potionId == null) {
+            potionId =
+                    item_blacklist$getResourceLocation(
+                            function,
+                            "potion"
+                    );
+        }
+
+        return potionId != null
+                && BlacklistManager.isBlacklistedPotion(
+                potionId
+        );
+    }
+
+    @Unique
+    private static boolean item_blacklist$isFunction(
+            JsonObject object,
+            String expected
+    ) {
+        JsonElement functionElement =
+                object.get("function");
+
+        if (functionElement == null
+                || !functionElement.isJsonPrimitive()) {
+            return false;
+        }
+
+        return item_blacklist$matchesId(
+                functionElement.getAsString(),
+                expected
+        );
+    }
+
+    @Unique
     private static ResourceLocation item_blacklist$getEntryId(
             JsonObject object,
             String expectedType
@@ -187,8 +371,9 @@ public abstract class LootDataTypeMixin<T> {
                 || nameElement == null
                 || !typeElement.isJsonPrimitive()
                 || !nameElement.isJsonPrimitive()
-                || !expectedType.equals(
-                typeElement.getAsString()
+                || !item_blacklist$matchesId(
+                typeElement.getAsString(),
+                expectedType
         )) {
             return null;
         }
@@ -196,5 +381,40 @@ public abstract class LootDataTypeMixin<T> {
         return ResourceLocation.tryParse(
                 nameElement.getAsString()
         );
+    }
+
+    @Unique
+    private static ResourceLocation item_blacklist$getResourceLocation(
+            JsonObject object,
+            String field
+    ) {
+        JsonElement element =
+                object.get(field);
+
+        if (element == null
+                || !element.isJsonPrimitive()) {
+            return null;
+        }
+
+        return ResourceLocation.tryParse(
+                element.getAsString()
+        );
+    }
+
+    @Unique
+    private static boolean item_blacklist$matchesId(
+            String actual,
+            String expected
+    ) {
+        if (expected.equals(actual)) {
+            return true;
+        }
+
+        int separator =
+                expected.indexOf(':');
+
+        return separator >= 0
+                && expected.substring(separator + 1)
+                .equals(actual);
     }
 }

@@ -6,13 +6,20 @@ import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.Minecraft;
 import net.sievert.item_blacklist.blacklist.BlacklistBrewingManager;
 import net.sievert.item_blacklist.blacklist.BlacklistManager;
-import net.sievert.item_blacklist.integration.BlacklistJeiManager;
+import net.sievert.item_blacklist.integration.jei.BlacklistJeiManager;
 import net.sievert.item_blacklist.network.BlacklistSyncPayload;
 
 public final class ItemBlacklistFabricClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        ClientPlayConnectionEvents.JOIN.register(
+                (handler, sender, client) ->
+                        BlacklistManager.setRemoteClient(
+                                !client.hasSingleplayerServer()
+                        )
+        );
+
         ClientPlayNetworking.registerGlobalReceiver(
                 BlacklistSyncPayload.TYPE,
                 (payload, context) -> {
@@ -37,7 +44,7 @@ public final class ItemBlacklistFabricClient implements ClientModInitializer {
 
         ClientPlayConnectionEvents.DISCONNECT.register(
                 (handler, client) -> {
-                    BlacklistManager.clearSyncedBlacklist();
+                    BlacklistManager.setRemoteClient(false);
                     BlacklistJeiManager.clearRuntime();
                 }
         );

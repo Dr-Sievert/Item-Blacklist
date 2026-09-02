@@ -26,7 +26,6 @@ import java.util.IdentityHashMap;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -188,32 +187,24 @@ public final class BlacklistTradeManager {
                 continue;
             }
 
-            for (Map.Entry<ResourceLocation, Set<TradeDirection>> entry :
-                    matches.tags.entrySet()) {
-                for (TradeDirection direction : entry.getValue()) {
-                    BlacklistLogReport.recordTradeTagRemoval(
-                            entry.getKey(),
-                            describeTrade(
-                                    context,
-                                    direction,
-                                    "#" + entry.getKey()
-                            )
-                    );
-                }
+            for (ResourceLocation tagId : matches.tags) {
+                BlacklistLogReport.recordTradeTagRemoval(
+                        tagId,
+                        describeTrade(
+                                context,
+                                "#" + tagId
+                        )
+                );
             }
 
-            for (Map.Entry<ResourceLocation, Set<TradeDirection>> entry :
-                    matches.items.entrySet()) {
-                for (TradeDirection direction : entry.getValue()) {
-                    BlacklistLogReport.recordTradeRemoval(
-                            entry.getKey(),
-                            describeTrade(
-                                    context,
-                                    direction,
-                                    entry.getKey().toString()
-                            )
-                    );
-                }
+            for (ResourceLocation itemId : matches.items) {
+                BlacklistLogReport.recordTradeRemoval(
+                        itemId,
+                        describeTrade(
+                                context,
+                                itemId.toString()
+                        )
+                );
             }
         }
 
@@ -232,7 +223,7 @@ public final class BlacklistTradeManager {
         String name =
                 listing.getClass().getSimpleName();
 
-        collectDynamicVanillaItems(
+        collectImplicitVanillaItems(
                 name,
                 matches
         );
@@ -257,11 +248,7 @@ public final class BlacklistTradeManager {
                 collectBlacklistedItems(
                         field.get(listing),
                         visited,
-                        matches,
-                        getFieldDirection(
-                                name,
-                                field.getName()
-                        )
+                        matches
                 );
             } catch (IllegalAccessException exception) {
                 ItemBlacklistLogs.error(
@@ -275,7 +262,7 @@ public final class BlacklistTradeManager {
         }
     }
 
-    private static void collectDynamicVanillaItems(
+    private static void collectImplicitVanillaItems(
             String listingName,
             TradeMatches matches
     ) {
@@ -287,20 +274,17 @@ public final class BlacklistTradeManager {
                  "TippedArrowForItemsAndEmeralds" ->
                     addIfBlacklisted(
                             Items.EMERALD,
-                            TradeDirection.BUYING,
                             matches
                     );
 
             case "SuspiciousStewForEmerald" -> {
                 addIfBlacklisted(
                         Items.EMERALD,
-                        TradeDirection.BUYING,
                         matches
                 );
 
                 addIfBlacklisted(
                         Items.SUSPICIOUS_STEW,
-                        TradeDirection.SELLING,
                         matches
                 );
             }
@@ -308,19 +292,16 @@ public final class BlacklistTradeManager {
             case "TreasureMapForEmeralds" -> {
                 addIfBlacklisted(
                         Items.EMERALD,
-                        TradeDirection.BUYING,
                         matches
                 );
 
                 addIfBlacklisted(
                         Items.COMPASS,
-                        TradeDirection.BUYING,
                         matches
                 );
 
                 addIfBlacklisted(
                         Items.FILLED_MAP,
-                        TradeDirection.SELLING,
                         matches
                 );
             }
@@ -328,19 +309,16 @@ public final class BlacklistTradeManager {
             case "EnchantBookForEmeralds" -> {
                 addIfBlacklisted(
                         Items.EMERALD,
-                        TradeDirection.BUYING,
                         matches
                 );
 
                 addIfBlacklisted(
                         Items.BOOK,
-                        TradeDirection.BUYING,
                         matches
                 );
 
                 addIfBlacklisted(
                         Items.ENCHANTED_BOOK,
-                        TradeDirection.SELLING,
                         matches
                 );
             }
@@ -349,7 +327,6 @@ public final class BlacklistTradeManager {
                  "EmeraldsForVillagerTypeItem" ->
                     addIfBlacklisted(
                             Items.EMERALD,
-                            TradeDirection.SELLING,
                             matches
                     );
 
@@ -358,123 +335,44 @@ public final class BlacklistTradeManager {
         }
     }
 
-    private static TradeDirection getFieldDirection(
-            String listingName,
-            String fieldName
-    ) {
-        return switch (listingName) {
-            case "DyedArmorForEmeralds" ->
-                    fieldName.equals("item")
-                            ? TradeDirection.SELLING
-                            : TradeDirection.UNKNOWN;
-
-            case "EmeraldForItems" ->
-                    fieldName.equals("itemStack")
-                            ? TradeDirection.BUYING
-                            : TradeDirection.UNKNOWN;
-
-            case "EmeraldsForVillagerTypeItem" ->
-                    fieldName.equals("trades")
-                            ? TradeDirection.BUYING
-                            : TradeDirection.UNKNOWN;
-
-            case "EnchantedItemForEmeralds",
-                 "ItemsForEmeralds" ->
-                    fieldName.equals("itemStack")
-                            ? TradeDirection.SELLING
-                            : TradeDirection.UNKNOWN;
-
-            case "ItemsAndEmeraldsToItems", "TippedArrowForItemsAndEmeralds" -> {
-                if (fieldName.equals("fromItem")) {
-                    yield TradeDirection.BUYING;
-                }
-
-                if (fieldName.equals("toItem")) {
-                    yield TradeDirection.SELLING;
-                }
-
-                yield TradeDirection.UNKNOWN;
-            }
-
-            default ->
-                    inferDirection(fieldName);
-        };
-    }
-
-    private static TradeDirection inferDirection(
-            String fieldName
-    ) {
-        String name =
-                fieldName.toLowerCase(Locale.ROOT);
-
-        if (name.contains("cost")
-                || name.contains("input")
-                || name.contains("from")
-                || name.contains("buy")
-                || name.contains("payment")
-                || name.contains("ingredient")) {
-            return TradeDirection.BUYING;
-        }
-
-        if (name.contains("result")
-                || name.contains("output")
-                || name.contains("to")
-                || name.contains("sell")) {
-            return TradeDirection.SELLING;
-        }
-
-        return TradeDirection.UNKNOWN;
-    }
-
     private static void collectBlacklistedItems(
             Object value,
             Set<Object> visited,
-            TradeMatches matches,
-            TradeDirection direction
+            TradeMatches matches
     ) {
         switch (value) {
             case Item item ->
                     addIfBlacklisted(
                             item,
-                            direction,
                             matches
                     );
 
             case ItemStack stack ->
                     addIfBlacklisted(
                             stack.getItem(),
-                            direction,
                             matches
                     );
 
             case ItemCost cost ->
                     addIfBlacklisted(
                             cost.item().value(),
-                            direction,
                             matches
                     );
 
-            case Ingredient ingredient -> {
-                for (ItemStack stack : ingredient.getItems()) {
-                    addIfBlacklisted(
-                            stack.getItem(),
-                            direction,
+            case Ingredient ingredient ->
+                    collectBlacklistedIngredient(
+                            ingredient,
                             matches
                     );
-                }
-            }
 
             case TagKey<?> tag -> {
                 if (tag.isFor(Registries.ITEM)
                         && BlacklistManager.isBlacklistedTag(
                         tag.location()
                 )) {
-                    matches.tags
-                            .computeIfAbsent(
-                                    tag.location(),
-                                    ignored -> new LinkedHashSet<>()
-                            )
-                            .add(direction);
+                    matches.tags.add(
+                            tag.location()
+                    );
                 }
             }
 
@@ -490,8 +388,7 @@ public final class BlacklistTradeManager {
                             object -> collectBlacklistedItems(
                                     object,
                                     visited,
-                                    matches,
-                                    direction
+                                    matches
                             )
                     );
 
@@ -500,8 +397,7 @@ public final class BlacklistTradeManager {
                     collectBlacklistedItems(
                             mapValue,
                             visited,
-                            matches,
-                            direction
+                            matches
                     );
                 }
             }
@@ -511,8 +407,7 @@ public final class BlacklistTradeManager {
                     collectBlacklistedItems(
                             object,
                             visited,
-                            matches,
-                            direction
+                            matches
                     );
                 }
             }
@@ -522,8 +417,7 @@ public final class BlacklistTradeManager {
                     collectBlacklistedItems(
                             object,
                             visited,
-                            matches,
-                            direction
+                            matches
                     );
                 }
             }
@@ -533,41 +427,52 @@ public final class BlacklistTradeManager {
         }
     }
 
+    private static void collectBlacklistedIngredient(
+            Ingredient ingredient,
+            TradeMatches matches
+    ) {
+        ItemStack[] stacks =
+                ingredient.getItems();
+
+        if (stacks.length == 0) {
+            return;
+        }
+
+        for (ItemStack stack : stacks) {
+            if (!BlacklistManager.isBlacklisted(
+                    stack.getItem()
+            )) {
+                return;
+            }
+        }
+
+        for (ItemStack stack : stacks) {
+            matches.items.add(
+                    BuiltInRegistries.ITEM.getKey(
+                            stack.getItem()
+                    )
+            );
+        }
+    }
+
     private static void addIfBlacklisted(
             Item item,
-            TradeDirection direction,
             TradeMatches matches
     ) {
         if (!BlacklistManager.isBlacklisted(item)) {
             return;
         }
 
-        ResourceLocation itemId =
-                BuiltInRegistries.ITEM.getKey(item);
-
-        matches.items
-                .computeIfAbsent(
-                        itemId,
-                        ignored -> new LinkedHashSet<>()
-                )
-                .add(direction);
+        matches.items.add(
+                BuiltInRegistries.ITEM.getKey(item)
+        );
     }
 
     private static String describeTrade(
             String context,
-            TradeDirection direction,
             String item
     ) {
-        return switch (direction) {
-            case BUYING ->
-                    context + " buying " + item;
-
-            case SELLING ->
-                    context + " selling " + item;
-
-            case UNKNOWN ->
-                    context + " trading " + item;
-        };
+        return context + " trade using " + item;
     }
 
     private static String levelName(
@@ -667,19 +572,13 @@ public final class BlacklistTradeManager {
         return List.copyOf(copy);
     }
 
-    private enum TradeDirection {
-        BUYING,
-        SELLING,
-        UNKNOWN
-    }
-
     private static final class TradeMatches {
 
-        private final Map<ResourceLocation, Set<TradeDirection>> items =
-                new LinkedHashMap<>();
+        private final Set<ResourceLocation> items =
+                new LinkedHashSet<>();
 
-        private final Map<ResourceLocation, Set<TradeDirection>> tags =
-                new LinkedHashMap<>();
+        private final Set<ResourceLocation> tags =
+                new LinkedHashSet<>();
 
         private boolean isEmpty() {
             return items.isEmpty()

@@ -91,7 +91,7 @@ public final class BlacklistBrewingManager {
             }
 
             String recipe =
-                    describePotionRecipe(
+                    describeRecipe(
                             inputPotion,
                             ingredient,
                             outputPotion
@@ -174,7 +174,7 @@ public final class BlacklistBrewingManager {
                             : BuiltInRegistries.ITEM.getKey(output);
 
             String recipe =
-                    describeContainerRecipe(
+                    describeRecipe(
                             inputId,
                             ingredient,
                             outputId
@@ -277,20 +277,7 @@ public final class BlacklistBrewingManager {
         return true;
     }
 
-    private static String describePotionRecipe(
-            ResourceLocation input,
-            Ingredient ingredient,
-            ResourceLocation output
-    ) {
-        return "input="
-                + input
-                + ", ingredient="
-                + describeIngredient(ingredient)
-                + ", output="
-                + output;
-    }
-
-    private static String describeContainerRecipe(
+    private static String describeRecipe(
             ResourceLocation input,
             Ingredient ingredient,
             ResourceLocation output
