@@ -1,0 +1,178 @@
+name: build
+
+on:
+  push:
+    branches: [main, master]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: build-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # The JDKs setup-java installs, the last one becoming JAVA_HOME, which Gradle runs on;
+  # GRADLE_JDKS names them for the toolchains each line's modules compile with (fromEnv).
+  JAVAS: |
+    21
+    25
+  GRADLE_JDKS: JAVA_HOME_21_X64,JAVA_HOME_25_X64
+
+jobs:
+  build:
+    name: compile + test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVAS }}
+
+      - uses: gradle/actions/setup-gradle@v5
+
+      # Every module of every line: its compile against its own release, the
+      # binary and lazy-loading checks, and the unit tests. gradlew runs through
+      # sh here and below, so it needs no execute bit in git.
+      - run: |
+          sh ./gradlew build --stacktrace \
+            -Dorg.gradle.java.installations.fromEnv="$GRADLE_JDKS"
+
+      # Each line module's release and test jars: what the verify legs boot.
+      # gradle.properties comes along so the artifact's root is the project's,
+      # and a download puts every jar back where the build left it.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: mod-jars
+          path: |
+            gradle.properties
+            item-blacklist-fabric/l1_21/build/libs/*.jar
+            item-blacklist-fabric/l26/build/libs/*.jar
+            item-blacklist-neoforge/l1_21/build/libs/*.jar
+            item-blacklist-neoforge/l26/build/libs/*.jar
+          if-no-files-found: error
+
+  verify:
+    name: ${{ matrix.loader }} on MC ${{ matrix.version }}
+    runs-on: ubuntu-latest
+    needs: build
+    strategy:
+      fail-fast: false
+      # The boot list: one leg per release and loader of RELEASES in scripts/run.py,
+      # with the Java its server needs. Keep the two in step.
+      matrix:
+        include:
+          - { loader: fabric, version: '1.21.1', java: 21 }
+          - { loader: neoforge, version: '1.21.1', java: 21 }
+          - { loader: fabric, version: '1.21.2', java: 21 }
+          - { loader: neoforge, version: '1.21.2', java: 21 }
+          - { loader: fabric, version: '1.21.3', java: 21 }
+          - { loader: neoforge, version: '1.21.3', java: 21 }
+          - { loader: fabric, version: '1.21.4', java: 21 }
+          - { loader: neoforge, version: '1.21.4', java: 21 }
+          - { loader: fabric, version: '1.21.5', java: 21 }
+          - { loader: neoforge, version: '1.21.5', java: 21 }
+          - { loader: fabric, version: '1.21.6', java: 21 }
+          - { loader: neoforge, version: '1.21.6', java: 21 }
+          - { loader: fabric, version: '1.21.7', java: 21 }
+          - { loader: neoforge, version: '1.21.7', java: 21 }
+          - { loader: fabric, version: '1.21.8', java: 21 }
+          - { loader: neoforge, version: '1.21.8', java: 21 }
+          - { loader: fabric, version: '1.21.9', java: 21 }
+          - { loader: neoforge, version: '1.21.9', java: 21 }
+          - { loader: fabric, version: '1.21.10', java: 21 }
+          - { loader: neoforge, version: '1.21.10', java: 21 }
+          - { loader: fabric, version: '1.21.11', java: 21 }
+          - { loader: neoforge, version: '1.21.11', java: 21 }
+          - { loader: fabric, version: '26.1.2', java: 25 }
+          - { loader: neoforge, version: '26.1.2', java: 25 }
+          - { loader: fabric, version: '26.2', java: 25 }
+          - { loader: neoforge, version: '26.2', java: 25 }
+    steps:
+      - uses: actions/checkout@v7
+
+      # The server's Java. run.py finds it in JAVA_HOME_<feature>_X64.
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: ${{ matrix.java }}
+
+      - name: Download the jars the build job made
+        id: jars
+        uses: actions/download-artifact@v8
+        with:
+          name: mod-jars
+
+      # The files run.py downloads. A changed scripts/run.py starts from the last cache,
+      # and run.py still checks each file against the sha256 it pins.
+      - name: Cache the downloads
+        uses: actions/cache@v6
+        with:
+          path: ~/.paper-scaffold/downloads
+          key: >-
+            downloads-${{ matrix.loader }}-${{ matrix.version }}-${{ hashFiles('scripts/run.py') }}
+          restore-keys: downloads-${{ matrix.loader }}-${{ matrix.version }}-
+
+      # This is the check that matters for multi-version support: the compile
+      # checks cannot show the line's jar loading on this release.
+      - name: Boot and verify the mod loads
+        run: |
+          python3 scripts/run.py ${{ matrix.version }} --loader ${{ matrix.loader }} \
+            --smoke --no-build
+
+      # Runs when the boot failed too, so one run reports both; not without the jars.
+      - name: Run the GameTests
+        if: (success() || failure()) && steps.jars.outcome == 'success'
+        run: |
+          python3 scripts/run.py ${{ matrix.version }} --loader ${{ matrix.loader }} \
+            --gametest --no-build
+
+      - name: Upload the GameTest report
+        if: success() || failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: gametest-report-${{ matrix.loader }}-${{ matrix.version }}
+          path: .run/${{ matrix.loader }}-${{ matrix.version }}/gametest-report.xml
+          if-no-files-found: ignore
+
+      - name: Upload the server logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: server-logs-${{ matrix.loader }}-${{ matrix.version }}
+          path: |
+            .run/${{ matrix.loader }}-${{ matrix.version }}/logs/
+            .run/${{ matrix.loader }}-${{ matrix.version }}/install.log
+          if-no-files-found: ignore
+
+  release:
+    name: release ${{ github.ref_name }}
+    # A v* tag publishes each line's jars once every leg has passed.
+    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [build, verify]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: ${{ env.JAVAS }}
+      - uses: gradle/actions/setup-gradle@v5
+      - name: Build the jars and publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          sh ./gradlew assemble -Pversion="$version" \
+            -Dorg.gradle.java.installations.fromEnv="$GRADLE_JDKS" --stacktrace
+          jars=(
+            "item-blacklist-fabric/l1_21/build/libs/item_blacklist-fabric-l1_21-$version.jar"
+            "item-blacklist-fabric/l26/build/libs/item_blacklist-fabric-l26-$version.jar"
+            "item-blacklist-neoforge/l1_21/build/libs/item_blacklist-neoforge-l1_21-$version.jar"
+            "item-blacklist-neoforge/l26/build/libs/item_blacklist-neoforge-l26-$version.jar"
+          )
+          gh release create "$GITHUB_REF_NAME" "${jars[@]}" --generate-notes

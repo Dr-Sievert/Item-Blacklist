@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "id": "${mod_id}_gametest",
+  "version": "${version}",
+  "name": "${mod_name} GameTests",
+  "description": "GameTests for ${mod_name}. Never shipped.",
+  "license": "${mod_license}",
+  "environment": "*",
+  "entrypoints": {
+    "main": ["net.sievert.item_blacklist.fabric.gametest.ItemBlacklistGameTestsFabric"]
+  },
+  "depends": {
+    "${mod_id}": "${version}",
+    "fabric-gametest-api-v1": "*"
+  }
+}

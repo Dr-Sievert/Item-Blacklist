@@ -1,0 +1,17 @@
+# One file for every line, as the main mod's (see there).
+modLoader = "javafml"
+loaderVersion = "[1,)"
+license = "${mod_license}"
+
+[[mods]]
+modId = "${mod_id}_gametest"
+version = "${version}"
+displayName = "${mod_name} GameTests"
+description = "GameTests for ${mod_name}. Never shipped."
+
+[[dependencies.${mod_id}_gametest]]
+modId = "${mod_id}"
+type = "required"
+versionRange = "[${version}]"
+ordering = "AFTER"
+side = "BOTH"

@@ -1,24 +1,42 @@
-# eclipse
-bin
-*.launch
-.settings
-.metadata
-.classpath
-.project
+# Build output
+build/
+out/
+*.class
+__pycache__/
 
-# idea
-out
+# Gradle
+.gradle/
+.kotlin/
+
+# The dev runs' folders, one per line module.
+runs/
+
+# The game's logging writes logs/ where a JVM starts: a unit test that logs leaves it in
+# its module's folder.
+logs/
+
+# Servers created by scripts/run.py: installed servers, worlds, logs and
+# reports. Everything under here is reproducible; none of it belongs in git. The
+# one exception is IntelliJ's shared run configurations, which live in the same
+# folder and are the project's one-click entry points.
+.run/*
+!.run/*.run.xml
+
+# Other mods in the dev-server overlay are third-party, often licensed and large.
+# Un-ignore one here deliberately if it belongs in the repository.
+dev-server/mods/*
+
+# IDE
+.idea/
+*.iml
 *.ipr
 *.iws
-*.iml
-.idea/*
-!.idea/scopes
+.vscode/
+.eclipse/
+.classpath
+.project
+.settings/
 
-# gradle
-build
-.gradle
-
-# other
-eclipse
-run
-runs
+# OS
+.DS_Store
+Thumbs.db

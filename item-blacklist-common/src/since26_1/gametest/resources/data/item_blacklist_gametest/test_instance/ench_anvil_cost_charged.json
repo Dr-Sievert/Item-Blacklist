@@ -1,0 +1,8 @@
+{
+  "type": "minecraft:function",
+  "function": "item_blacklist_gametest:ench_anvil_cost_charged",
+  "environment": "item_blacklist_gametest:default",
+  "structure": "item_blacklist_gametest:empty",
+  "max_ticks": 20,
+  "required": true
+}

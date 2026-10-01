@@ -1,0 +1,35 @@
+{
+  // The config of the GameTest servers: the test mod reads this resource and hands it to the
+  // mod (ItemBlacklistMod.overrideConfig). FixtureTest and the scenarios depend on this exact
+  // content. Every minecraft id exists on 1.21.1 to 26.2. The mod_id entries are unknown on
+  // purpose: they prove that an unknown entry only warns.
+  "Detailed Log": true,
+
+  "Items": [
+    "minecraft:oak_planks",
+    "#minecraft:planks",
+    "minecraft:charcoal",
+    "minecraft:soul_sand",
+    "minecraft:soul_soil",
+    "minecraft:rabbit_foot",
+    "minecraft:lingering_potion",
+    "minecraft:beetroot_seeds",
+    "minecraft:phantom_membrane",
+    "mod_id:mod_item",
+    "#mod_id:mod_tag"
+  ],
+
+  "Potions": [
+    "minecraft:strength",
+    "minecraft:strong_strength",
+    "minecraft:long_strength",
+    "mod_id:mod_potion"
+  ],
+
+  "Enchantments": [
+    "minecraft:mending",
+    "#minecraft:curse",
+    "mod_id:mod_enchantment",
+    "#mod_id:mod_enchantment_tag"
+  ]
+}

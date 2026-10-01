@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:chest",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        { "type": "minecraft:item", "name": "minecraft:oak_planks" },
+        { "type": "item", "name": "birch_planks" },
+        { "type": "minecraft:item", "name": "minecraft:stone" }
+      ]
+    }
+  ]
+}

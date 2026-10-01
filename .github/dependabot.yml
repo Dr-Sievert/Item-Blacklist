@@ -1,0 +1,12 @@
+# Weekly pull requests for newer versions of the actions the workflows use.
+#
+# Nothing Gradle builds with is on the list. Each Minecraft, loader and API pin
+# in gradle.properties belongs to one release, and Maven's version order would
+# "upgrade" a pin built for one release to a build for another, which the line
+# does not serve. Moving a line to newer releases is a recipe in CLAUDE.md.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

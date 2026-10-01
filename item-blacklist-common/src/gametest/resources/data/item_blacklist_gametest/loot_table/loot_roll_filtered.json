@@ -1,0 +1,19 @@
+{
+  "type": "minecraft:chest",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "minecraft:cobblestone",
+          "functions": [ { "function": "minecraft:set_item", "item": "minecraft:oak_planks" } ]
+        }
+      ]
+    },
+    {
+      "rolls": 1,
+      "entries": [ { "type": "minecraft:item", "name": "minecraft:stone" } ]
+    }
+  ]
+}

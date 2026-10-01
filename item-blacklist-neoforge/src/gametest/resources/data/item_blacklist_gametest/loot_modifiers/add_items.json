@@ -1,0 +1,9 @@
+{
+  "type": "item_blacklist_gametest:add_items",
+  "conditions": [
+    {
+      "condition": "neoforge:loot_table_id",
+      "loot_table_id": "item_blacklist_gametest:loot_additions_filtered"
+    }
+  ]
+}

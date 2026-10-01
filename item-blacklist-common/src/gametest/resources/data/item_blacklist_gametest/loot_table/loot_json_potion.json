@@ -1,0 +1,25 @@
+{
+  "type": "minecraft:chest",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        {
+          "type": "minecraft:item",
+          "name": "minecraft:potion",
+          "functions": [ { "function": "minecraft:set_potion", "id": "minecraft:strength" } ]
+        },
+        {
+          "type": "minecraft:item",
+          "name": "minecraft:potion",
+          "functions": [ { "function": "minecraft:set_potion", "id": "minecraft:leaping" } ]
+        }
+      ]
+    },
+    {
+      "rolls": 1,
+      "entries": [ { "type": "minecraft:item", "name": "minecraft:splash_potion" } ],
+      "functions": [ { "function": "minecraft:set_potion", "id": "minecraft:strong_strength" } ]
+    }
+  ]
+}

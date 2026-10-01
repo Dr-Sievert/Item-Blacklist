@@ -1,0 +1,8 @@
+{
+  "type": "minecraft:function",
+  "function": "item_blacklist_gametest:loot_json_rule_built",
+  "environment": "item_blacklist_gametest:default",
+  "structure": "item_blacklist_gametest:empty",
+  "max_ticks": 20,
+  "required": true
+}

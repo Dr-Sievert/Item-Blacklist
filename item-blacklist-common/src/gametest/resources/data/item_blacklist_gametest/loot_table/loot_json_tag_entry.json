@@ -1,0 +1,13 @@
+{
+  "type": "minecraft:chest",
+  "pools": [
+    {
+      "rolls": 1,
+      "entries": [
+        { "type": "minecraft:tag", "name": "minecraft:planks", "expand": true },
+        { "type": "minecraft:tag", "name": "minecraft:logs", "expand": true },
+        { "type": "minecraft:item", "name": "minecraft:stone" }
+      ]
+    }
+  ]
+}
