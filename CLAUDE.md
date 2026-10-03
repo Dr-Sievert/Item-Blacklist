@@ -504,10 +504,12 @@ recipe names (`lines`, `loaders`, `boot_versions`), and run
 ```
 
 Its files are what the generator writes for those answers, which is more than this project
-holds: a version module for every 1.21.x release, no JEI keys or JEI lines in build-logic, and
-the datagen scaffolding this project does without. Take only the ones the recipe names, as they
-are, except their datagen, which every recipe here leaves out: its `runDatagen` task does not
-exist here, and its `Datagen` backends implement a facade this project does not have.
+holds: a version module for every 1.21.x release, no JEI keys or JEI lines in build-logic, no
+dev-client overlay (`dev-client/` and the `devClientOverlay` task), and the datagen scaffolding
+and the dev-server overlay this project does without. Take only the ones the recipe names, as
+they are, except their datagen and their dev-server overlay, which every recipe here leaves out:
+its `runDatagen` task does not exist here, its `Datagen` backends implement a facade this
+project does not have, and `dev-client/` replaced the overlay.
 
 - `.github/workflows/build.yml`: the step "Rerun datagen and fail on stale output".
 - `build-logic`: the datagen blocks of `mod.loader`, `mod.fabric-shared` and `mod.neoforge`
@@ -520,11 +522,16 @@ exist here, and its `Datagen` backends implement a facade this project does not 
 - `.gitignore`: the `**/generated/.cache/` lines.
 - `README.md` and `CLAUDE.md`: their datagen text, the section "A datagen provider" among it.
 
+The dev-server overlay is the folder `dev-server/`, `DEV_SERVER` and its copy in
+`prepare_server` of `scripts/run.py` with the docstring lines that name it, the
+`dev-server/mods/*` lines of `.gitignore`, and the text of `README.md` and `CLAUDE.md` that
+names `dev-server/`.
+
 ## Where the range is written
 
 A new range, line or boot list changes, besides the keys, modules and folders its recipe names,
-the text that names releases, lines or modules: `README.md`, this file, `dev-server/README.md`,
-the docstring of `scripts/run.py` and the comments in `gradle.properties`. Generate a throwaway
+the text that names releases, lines or modules: `README.md`, this file, the docstring of
+`scripts/run.py` and the comments in `gradle.properties`. Generate a throwaway
 project with the same answers and the new range or boot list (A throwaway project), diff each
 of these files against its twin there, and take its text, carrying your own additions over.
 
@@ -796,14 +803,16 @@ module's build of JEI, with its library MezzConfig (named directly on 1.21.x Fab
 No `run.py` boot has JEI installed, and the dev GameTest runs, which have it, start no client,
 so these stay checks by hand before a release: H1 to H3 on the dev clients, which start with
 JEI and JER (`.\gw.cmd :item-blacklist-<loader>:l1_21:runClient`, `...:l26:runClient`, or
-IntelliJ's "Fabric Client" and "NeoForge Client" runs), H4 and H5 with that JEI build put in by
-hand: H1, the 1.21.1 dev client, on each loader: the planks' and strength's brewing and anvil
-recipes are hidden, and a changed blacklist after `/reload` hides again; H2, the same on the
-26.1.2 dev client; H3, a NeoForge 1.21.1 client log holds one
-`Failed to load: ...ItemBlacklistJeiPluginSince1_21_11` and the mod's `[RECIPE] JEI: ...` line;
-H4, a NeoForge 1.21.11 client with JEI 27 (the other class fails, the filtering works); H5, one
-server per line with that line's JEI jar in `mods/` passes `--gametest` (An optional dependency
-on another mod, step 5).
+IntelliJ's "Fabric Client" and "NeoForge Client" runs); the blacklist H1 and H2 need
+(`#minecraft:planks`, `minecraft:strength`, as in `README.md`, "The config") goes into
+`dev-client/config/item_blacklist.jsonc`, which reaches all four dev clients before each start
+(`dev-client/README.md`); H4 and H5 with that JEI build put in by hand: H1, the 1.21.1 dev
+client, on each loader: the planks' and strength's brewing and anvil recipes are hidden, and a
+changed blacklist after `/reload` hides again; H2, the same on the 26.1.2 dev client; H3, a
+NeoForge 1.21.1 client log holds one `Failed to load: ...ItemBlacklistJeiPluginSince1_21_11`
+and the mod's `[RECIPE] JEI: ...` line; H4, a NeoForge 1.21.11 client with JEI 27 (the other
+class fails, the filtering works); H5, one server per line with that line's JEI jar in `mods/`
+passes `--gametest` (An optional dependency on another mod, step 5).
 
 ## JER
 
@@ -880,8 +889,8 @@ In a project with one loader:
    loader's pins and ranges, NeoForm, the Mixin pins); the first docstring line of
    `scripts/run.py` and its section "The mod and its boot list, written when the project was
    made" (`LOADERS` through `FABRIC_INSTALLER`); `.github/workflows/build.yml`; and
-   `README.md`, `CLAUDE.md` and `dev-server/README.md`, carrying your own additions over; of
-   all of these, nothing of datagen (A throwaway project). The
+   `README.md` and `CLAUDE.md`, carrying your own additions over; of all of these, nothing of
+   datagen or of the dev-server overlay (A throwaway project). The
    description, kept from the answers, is yours to update: `mod_description` in
    `gradle.properties` and line 3 of `README.md`.
 2. From each folder under `src/` of this project's loader part, move everything except that

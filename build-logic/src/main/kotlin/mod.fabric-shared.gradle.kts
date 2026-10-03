@@ -61,3 +61,9 @@ extensions.configure<LoomGradleExtensionAPI> {
         }
     }
 }
+
+// The dev-client overlay (mod.loader) before the dev client: IntelliJ's "Fabric Client"
+// configurations launch this same Gradle task, so the IDE and Gradle both copy it.
+if (mod.isLineModule) {
+    tasks.named("runClient") { dependsOn("devClientOverlay") }
+}

@@ -186,7 +186,7 @@ in a terminal.
 | `<part>/l1_21/` ... `<part>/v26_2/` | one Gradle module per line (`l1_21`, `l26`), one per 1.21.x release where a window of the code starts and per drop above the 26.x floor (common: `v1_21_2`, `v1_21_4`, `v1_21_5`, `v1_21_6`, `v1_21_9`, `v1_21_11`, `v26_2`; Fabric the same without `v1_21_9`, NeoForge without `v1_21_6`), a build script each |
 | `build-logic/` | the convention plugins: folder choice, version classes, binary and lazy checks |
 | `scripts/run.py` | servers per loader and release under `.run/`, smoke boots, GameTests |
-| `dev-server/` | copied over every server `run.py` starts |
+| `dev-client/` | copied over the run folder of every dev client before it starts |
 | `.run/` | IntelliJ run configurations, and one server per loader and release (`.run/<loader>-<release>/`) |
 
 ## How multi-version support works
@@ -297,12 +297,34 @@ beta; a beta may still change its API, so none is a line's default floor or ceil
 NeoForge has only beta builds for 1.21.2, 1.21.6, 1.21.7 and 1.21.9, so their pins are betas.
 
 Servers live in `.run/<loader>-<release>/`, one per loader and release, each installed on its
-first run (a NeoForge server takes about 135 MB). What `run.py` puts into a server before each
-run, this mod's jars, the `dev-server/` overlay and the layers of `server.properties`, is in
-`dev-server/README.md`. Test runs play in a world of their own, deleted before and after, so
-the world a server keeps for `run.py <release>` is never touched. `run.py` writes `eula=true`
-into every server folder it prepares: running it accepts the Minecraft EULA
+first run (a NeoForge server takes about 135 MB). Before each run `run.py` puts the line's jar
+into the server's `mods/` in place of any earlier jar of this mod, and for a GameTest run the
+test jar and, on Fabric, Fabric API's GameTest module, removed afterwards; on Fabric it keeps
+the release's Fabric API there, the only one. It adds and removes only those
+(`item_blacklist-<loader>-*`, `item_blacklist_gametest-<loader>-*`, Fabric API and its GameTest
+module), so a jar put by hand into `.run/<loader>-<release>/mods/` stays there, for that server
+alone. A smoke or interactive boot reads the server's own
+`config/item_blacklist.jsonc`, the empty default the mod writes at its first start, which is the
+file to edit for a test by hand. Test runs play in a world of their own, deleted before and
+after, so the world a server keeps for `run.py <release>` is never touched. `run.py` writes
+`eula=true` into every server folder it prepares: running it accepts the Minecraft EULA
 (https://aka.ms/MinecraftEULA) for those local servers.
+
+`run.py` writes each server's `server.properties` every time it starts it, from three layers,
+each winning over the one before:
+
+1. the server's file in `.run/<loader>-<release>/`: defaults at its first start (127.0.0.1
+   only, offline mode), then whatever it holds, hand edits included;
+2. `server.properties` in the paper-scaffold home ("Settings you only want to change once"),
+   which every paper-scaffold project on this machine applies, so a setting wanted on every
+   server is made once;
+3. what `run.py` sets for a test run: the smoke boots, and NeoForge's GameTests on 1.21.5 to
+   1.21.8, run on a flat world. This layer lasts for its run only: the file is put back as it
+   was afterwards.
+
+`server-port` is not a layer: `run.py` gives each server its own port. The first two layers
+are written back into the server's own file, so a key removed from the shared file keeps its
+last value there until edited.
 
 The installers and mod jars `run.py` downloads (Fabric's installer, Fabric API and its
 GameTest module, NeoForge's installers) go to `downloads/` in the paper-scaffold home, each
@@ -340,7 +362,10 @@ line module's own classes at the line's floor, in `<part>/<line module>/runs/`, 
 Just Enough Resources loaded: the line's builds pinned in `gradle.properties`, which Gradle
 fetches for the dev runs only and no jar ships. The dev clients are where client code is
 tried, by hand, the JEI and JER integration included (JER's pages not on Fabric 1.21.x, whose
-JER build lacks its API package).
+JER build lacks its API package). Files the four dev clients share, such as the blacklist of a
+singleplayer world in `config/item_blacklist.jsonc`, go into `dev-client/`, which is copied over
+each client's run folder before it starts, from Gradle and from IntelliJ alike
+(`dev-client/README.md`).
 
 IntelliJ keeps a source folder in one module only, so the shared `src/main` and `src/gametest`
 resolve against one line's game at a time: the line `ideLine` in `gradle.properties` names

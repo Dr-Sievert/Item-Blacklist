@@ -22,9 +22,9 @@ logs/
 .run/*
 !.run/*.run.xml
 
-# Other mods in the dev-server overlay are third-party, often licensed and large.
+# Other mods' jars in the dev-client overlay are third-party, often licensed and large.
 # Un-ignore one here deliberately if it belongs in the repository.
-dev-server/mods/*
+dev-client/mods/*
 
 # IDE
 .idea/

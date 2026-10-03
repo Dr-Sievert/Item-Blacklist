@@ -49,6 +49,18 @@ if (mod.isLineModule) {
             versionGametestClasses(project(path = module, configuration = "shippedGametestClasses"))
         }
     }
+
+    // The dev-client overlay (dev-client/README.md): one folder of client files for the four
+    // dev clients, copied over this module's client run folder before each start. Each loader
+    // plugin makes its client run depend on it, in a way an IDE launch runs too. A plain Copy:
+    // nothing in the run folder is deleted. Untracked, since the game writes that folder too
+    // (worlds, logs) and an up-to-date check would snapshot all of it at every start.
+    tasks.register<Copy>("devClientOverlay") {
+        description = "Copies dev-client/ over this module's runs/client, its README.md left out."
+        from(rootProject.layout.projectDirectory.dir("dev-client")) { exclude("README.md") }
+        into(layout.projectDirectory.dir("runs/client"))
+        doNotTrackState("The client run folder is the game's too.")
+    }
 } else {
     // A version module compiles everything valid at its release in one compile, the check.
     // Only its own folders ship, this part's and common's: their classes are picked out of

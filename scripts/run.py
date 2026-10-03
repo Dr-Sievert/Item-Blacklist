@@ -15,7 +15,8 @@ deleting that folder resets just that server. The installers and mod jars the
 servers need are downloaded once into the paper-scaffold home, shared by every
 project, each checked against the sha256 pinned below (RELEASES and
 FABRIC_INSTALLER); the Mojang server jar the Fabric installer fetches, against
-its sha1. How a server's server.properties is layered: dev-server/README.md.
+its sha1. What a server gets before each run, its jars and its layered
+server.properties: README.md, "Testing across versions".
 
 Standard library only, and no assumptions about what is on PATH: the build
 runs through gw.cmd or gw.sh, which find its JDK, and each server's Java is
@@ -374,9 +375,6 @@ DOWNLOADS = SCAFFOLD_HOME / "downloads"
 
 # server.properties overrides shared by every dev server on this machine.
 GLOBAL_PROPERTIES = SCAFFOLD_HOME / "server.properties"
-
-# Copied over every server this script starts; dev-server/README.md has the rules.
-DEV_SERVER = PROJECT / "dev-server"
 
 FABRIC_MAVEN = "https://maven.fabricmc.net/net/fabricmc"
 NEOFORGE_MAVEN = "https://maven.neoforged.net/releases/net/neoforged"
@@ -774,27 +772,14 @@ def write_properties(
 
 
 def prepare_server(loader: str, release: str, java: Path) -> Path:
-    """Install a release's server of a loader when it is not yet, and lay out its folder.
-
-    The dev-server overlay is copied first, so what is written after it wins:
-    the EULA, the layered server.properties and, on Fabric, the release's
-    Fabric API, the one Fabric API in mods/.
+    """Install a release's server of a loader when it is not yet, and lay out its folder:
+    the EULA, the layered server.properties and, on Fabric, the release's Fabric API, the
+    one Fabric API in mods/.
     """
     folder = server_folder(loader, release)
     folder.mkdir(parents=True, exist_ok=True)
     if not installed(loader, release):
         install(loader, release, folder, java)
-
-    if DEV_SERVER.is_dir():
-        # Its README.md is for people. A server.properties here is ignored: write_properties
-        # writes each server's own from its layers (dev-server/README.md).
-        left_out = {"server.properties", "README.md"}
-        shutil.copytree(
-            DEV_SERVER,
-            folder,
-            dirs_exist_ok=True,
-            ignore=lambda parent, names: left_out if Path(parent) == DEV_SERVER else set(),
-        )
 
     # Accepting the EULA here is the developer accepting it for their own local
     # test server; it is not shipped anywhere.

@@ -59,6 +59,10 @@ if (mod.isLineModule) {
                 gameDirectory = layout.projectDirectory.dir("runs/client")
                 ideName = "NeoForge Client ${mod.line.label}"
                 loadedMods = setOf(mods.getByName(mod.modId))
+                // The dev-client overlay (mod.loader). taskBefore makes runClient depend on it
+                // and adds it to the IDE's "NeoForge Client" configuration as a Gradle step
+                // before launch: that configuration starts the JVM itself, past every task.
+                taskBefore(tasks.named("devClientOverlay"))
             }
             register("server") {
                 server()
